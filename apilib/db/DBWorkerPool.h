@@ -63,7 +63,12 @@ namespace DB
 		PreparedStatement* GetPreparedStatement(PreparedStatementIndex index);
 		
 		//同步查询
+		QueryResult Query(char const* sql, T* connection = nullptr);
+
+		//同步查询
 		PreparedQueryResult Query(PreparedStatement* stmt);
+
+		void DirectExecute(char const* sql);
 		
 		//异步查询
 		QueryCallback AsyncQuery(PreparedStatement* stmt);

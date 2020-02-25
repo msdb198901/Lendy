@@ -6,6 +6,7 @@
 #include "Log.h"
 #include "INIReader.h"
 #include "StringUtility.h"
+#include "SHA1.h"
 
 #include "Field.h"
 #include "QueryResult.h"
@@ -81,11 +82,37 @@ namespace DB
 		LOG_INFO("sql.updates", "正在更新 %s 数据库...", DBUpdater<T>::GetTableName().c_str());
 
 		Path const sourceDirectory(GetBaseFile());
-		if (sourceDirectory.is_directory())
+		if (!is_directory(sourceDirectory))
 		{
 			LOG_ERROR("sql.updates", "更新目录 %s 不存在, 请检查指定sql目录.", sourceDirectory.generic_string().c_str());
 			return false;
 		}
+
+		UpdateFetcher updateFetcher(sourceDirectory, [&](std::string const& query) { DBUpdater<T>::Apply(pool, query); },
+			[&](Path const& file) { DBUpdater<T>::ApplyFile(pool, file); },
+			[&](std::string const& query) -> QueryResult { return DBUpdater<T>::Retrieve(pool, query); });
+
+		UpdateResult result;
+		try
+		{
+			result = updateFetcher.Update(
+				sConfigMgr->GetBool("DB", "Updates.Redundancy", true),
+				sConfigMgr->GetBool("DB", "Updates.AllowRehash", true),
+				sConfigMgr->GetBool("DB", "Updates.ArchivedRedundancy", false),
+				sConfigMgr->GetInt32("DB", "Updates.CleanDeadRefMaxCount", 3));
+		}
+		catch (...)
+		{
+			return false;
+		}
+
+		std::string const info = StringFormat("Containing " "%" PRIuPTR " new and " "%" PRIuPTR " archived updates.",
+			result.recent, result.archived);
+
+		if (!result.updated)
+			LOG_INFO("sql.updates", ">> %s database is up-to-date! %s", DBUpdater<T>::GetTableName().c_str(), info.c_str());
+		else
+			LOG_INFO("sql.updates", ">> Applied " "%" PRIuPTR " %s. %s", result.updated, result.updated == 1 ? "query" : "queries", info.c_str());
 
 		return true;
 	}
@@ -108,6 +135,18 @@ namespace DB
 	BaseLocation DBUpdater<T>::GetBaseLocationType()
 	{
 		return LOCATION_REPOSITORY;
+	}
+
+	template<class T>
+	QueryResult DBUpdater<T>::Retrieve(DBWorkerPool<T>& pool, std::string const& query)
+	{
+		return pool.Query(query.c_str());
+	}
+
+	template<class T>
+	void DBUpdater<T>::Apply(DBWorkerPool<T>& pool, std::string const& query)
+	{
+		pool.DirectExecute(query.c_str());
 	}
 
 	template<class T>
@@ -381,10 +420,125 @@ namespace DB
 					continue;
 				}
 			}
+
+			std::string const hash = CalculateSHA1Hash(ReadSQLUpdate(availableQuery.first));
+
+			UpdateMode mode = MODE_APPLY;
+
+			if (iter == applied.end())
+			{
+				//捕获重命名（文件名不同，但哈希相同）
+				HashToFileNameStorage::const_iterator const hashIter = hashToName.find(hash);
+				if (hashIter != hashToName.end())
+				{
+					LocaleFileStorage::const_iterator localeIter;
+					for (localeIter = available.begin(); (localeIter != available.end()) &&
+						(localeIter->first.filename().string() != hashIter->second); ++localeIter);
+
+					//冲突
+					if (localeIter != available.end())
+					{
+						LOG_WARN("sql.updates", ">> 更新文件 \"%s\" \'%s\' 重命名, 旧文件依然存在! " \
+							"尝试当成新文件! (它可能是文件的未修改副本 \"%s\")",
+							availableQuery.first.filename().string().c_str(), hash.substr(0, 7).c_str(),
+							localeIter->first.filename().string().c_str());
+					}
+				
+					else
+					{
+						LOG_INFO("sql.updates", ">> 重命名更新文件 \"%s\" 成 \"%s\" \'%s\'.",
+							hashIter->second.c_str(), availableQuery.first.filename().string().c_str(), hash.substr(0, 7).c_str());
+
+						RenameEntry(hashIter->second, availableQuery.first.filename().string());
+						applied.erase(hashIter->second);
+						continue;
+					}
+				}
+				// 从未更新
+				else
+				{
+					LOG_INFO("sql.updates", ">> 应用更新 \"%s\" \'%s\'...",
+						availableQuery.first.filename().string().c_str(), hash.substr(0, 7).c_str());
+				}
+			}
+			//如果更新条目存在于我们的数据库中，则使用新的哈希值重新哈希。
+			else if (allowRehash && iter->second.hash.empty())
+			{
+				mode = MODE_REHASH;
+
+				LOG_INFO("sql.updates", ">> 重置hash \"%s\" \'%s\'...", availableQuery.first.filename().string().c_str(),
+					hash.substr(0, 7).c_str());
+			}
+			else
+			{
+				// 如果文件的哈希值与数据库中存储的哈希值不同，请重新应用更新（因为它已更改）.
+				if (iter->second.hash != hash)
+				{
+					LOG_INFO("sql.updates", ">> 重新应用更新 \"%s\" \'%s\' -> \'%s\' (改变)...", availableQuery.first.filename().string().c_str(),
+						iter->second.hash.substr(0, 7).c_str(), hash.substr(0, 7).c_str());
+				}
+				else
+				{
+					// 如果文件没有更改，只是移动了，请更新其状态（如有必要）.
+					if (iter->second.state != availableQuery.second)
+					{
+						LOG_DEBUG("sql.updates", ">> Updating the state of \"%s\" to \'%s\'...",
+							availableQuery.first.filename().string().c_str(), AppliedFileEntry::StateConvert(availableQuery.second).c_str());
+
+						UpdateState(availableQuery.first.filename().string(), availableQuery.second);
+					}
+
+					LOG_DEBUG("sql.updates", ">> 更新已应用并且匹配哈希 \'%s\'.", hash.substr(0, 7).c_str());
+
+					applied.erase(iter);
+					continue;
+				}
+			}
+
+			uint32 speed = 0;
+			AppliedFileEntry const file = { availableQuery.first.filename().string(), hash, availableQuery.second, 0 };
+
+			switch (mode)
+			{
+			case MODE_APPLY:
+				speed = Apply(availableQuery.first);
+				/* fallthrough */
+			case MODE_REHASH:
+				UpdateEntry(file, speed);
+				break;
+			}
+
+			if (iter != applied.end())
+				applied.erase(iter);
+
+			if (mode == MODE_APPLY)
+				++importedUpdates;
 		}
 			
+		// 清理孤立的条目（如果启用）
+		if (!applied.empty())
+		{
+			bool const doCleanup = (cleanDeadReferencesMaxCount < 0) || (applied.size() <= static_cast<size_t>(cleanDeadReferencesMaxCount));
 
-		return UpdateResult();
+			for (auto const& entry : applied)
+			{
+				LOG_WARN("sql.updates", ">> The file \'%s\' was applied to the database, but is missing in" \
+					" your update directory now!", entry.first.c_str());
+
+				if (doCleanup)
+					LOG_INFO("sql.updates", "Deleting orphaned entry \'%s\'...", entry.first.c_str());
+			}
+
+			if (doCleanup)
+				CleanUp(applied);
+			else
+			{
+				LOG_ERROR("sql.updates", "Cleanup is disabled! There were  " "%" PRIuPTR " dirty files applied to your database, " \
+					"but they are now missing in your source directory!", applied.size());
+			}
+		}
+
+		return UpdateResult(importedUpdates, countRecentUpdates, countArchivedUpdates);
 	}
 	
 	bool UpdateFetcher::PathCompare::operator()(LocaleFileEntry const & left, LocaleFileEntry const & right) const
@@ -456,6 +610,102 @@ namespace DB
 		} while (result->NextRow());
 
 		return map;
+	}
+
+	std::string UpdateFetcher::ReadSQLUpdate(Path const & file) const
+	{
+		std::ifstream in(file.c_str());
+		if (!in.is_open())
+		{
+			LOG_FATAL("sql.updates", "无法打开sql更新 \"%s\" 进行读取! "
+				"停止服务器以保持数据库完整性, "
+				"尝试确定并解决问题或禁用数据库更新程序.",
+				file.generic_string().c_str());
+
+			throw "打开更新文件失败!";
+		}
+
+		auto update = [&in] {
+			std::ostringstream ss;
+			ss << in.rdbuf();
+			return ss.str();
+		}();
+
+		in.close();
+		return update;
+	}
+
+	uint32 UpdateFetcher::Apply(Path const& path) const
+	{
+		using Time = std::chrono::high_resolution_clock;
+
+		// Benchmark query speed
+		auto const begin = Time::now();
+
+		// Update database
+		_applyFile(path);
+
+		// Return the time it took the query to apply
+		return uint32(std::chrono::duration_cast<std::chrono::milliseconds>(Time::now() - begin).count());
+	}
+
+	void UpdateFetcher::UpdateEntry(AppliedFileEntry const& entry, uint32 const speed) const
+	{
+		std::string const update = "REPLACE INTO `updates` (`name`, `hash`, `state`, `speed`) VALUES (\"" +
+			entry.name + "\", \"" + entry.hash + "\", \'" + entry.GetStateAsString() + "\', " + std::to_string(speed) + ")";
+
+		// Update database
+		_apply(update);
+	}
+
+	void UpdateFetcher::RenameEntry(std::string const & from, std::string const & to) const
+	{
+		//存在删除
+		{
+			std::string const update = "DELETE FROM `updates` WHERE `name`=\"" + to + "\"";
+
+			//更新数据库
+			_apply(update);
+		}
+
+		//重命名
+		{
+			std::string const update = "UPDATE `updates` SET `name`=\"" + to + "\" WHERE `name`=\"" + from + "\"";
+
+			//更新数据库
+			_apply(update);
+		}
+	}
+
+	void UpdateFetcher::CleanUp(AppliedFileStorage const& storage) const
+	{
+		if (storage.empty())
+			return;
+
+		std::stringstream update;
+		size_t remaining = storage.size();
+
+		update << "DELETE FROM `updates` WHERE `name` IN(";
+
+		for (auto const& entry : storage)
+		{
+			update << "\"" << entry.first << "\"";
+			if ((--remaining) > 0)
+				update << ", ";
+		}
+
+		update << ")";
+
+		// Update database
+		_apply(update.str());
+	}
+
+	void UpdateFetcher::UpdateState(std::string const& name, State const state) const
+	{
+		std::string const update = "UPDATE `updates` SET `state`=\'" + AppliedFileEntry::StateConvert(state) + "\' WHERE `name`=\"" + name + "\"";
+
+		// Update database
+		_apply(update);
 	}
 	
 	void UpdateFetcher::FillFileListRecursively(Path const & path, LocaleFileStorage & storage, State const state, uint32 const depth) const

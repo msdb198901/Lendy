@@ -1,8 +1,8 @@
 @echo off
 
-set config_file_path="F:\Learn\lendy\src\logonserver"
-set src_file_path="F:\Learn\lendy\Build\apilib"
-set dst_file_path="F:\Learn\lendy\Build\src\logonserver"
+set config_file_path="%~dp0src\logonserver"
+set src_file_path="%~dp0Build\apilib"
+set dst_file_path="%~dp0Build\src\logonserver"
 
 
 xcopy %src_file_path%\dep\fmt\Debug\*.lib %dst_file_path% /s /e /y

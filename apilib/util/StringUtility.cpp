@@ -290,7 +290,7 @@ bool StringUtility::Bin2Hex(const char* bin_str, std::string* hex_str)
         uint8 low = (static_cast<uint8>(*bin_str) & 0xF);
 #define DEC2ASCII(c) \
     if (c <= 9) c += '0'; \
-    else c += ('A' - 10)
+    else c += ('A' -  10)
         DEC2ASCII(high);
         DEC2ASCII(low);
         hex_str->append(1, static_cast<char>(high));

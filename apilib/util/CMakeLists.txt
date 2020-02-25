@@ -17,4 +17,5 @@ target_include_directories(Util
 
 target_link_libraries(Util
   PUBLIC
-    fmt)
+    fmt
+	openssl)

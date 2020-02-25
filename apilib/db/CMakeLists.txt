@@ -18,5 +18,4 @@ target_include_directories(DataBase
 target_link_libraries(DataBase
   PUBLIC
     Log
-    mysql
-    openssl)
+    mysql)

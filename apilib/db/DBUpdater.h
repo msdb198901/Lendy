@@ -14,6 +14,12 @@ namespace DB
 	using namespace std::tr2::sys;
 
 	///////////////////ÌáÈ¡Æ÷////////////////
+	enum UpdateMode
+	{
+		MODE_APPLY,
+		MODE_REHASH
+	};
+
 	enum State
 	{
 		RELEASED,
@@ -58,6 +64,16 @@ namespace DB
 		DirectoryStorage ReceiveIncludedDirectories() const;
 		AppliedFileStorage ReceiveAppliedFiles() const;
 
+		std::string ReadSQLUpdate(Path const& file) const;
+
+		uint32 Apply(Path const& path) const;
+
+		void UpdateEntry(AppliedFileEntry const& entry, uint32 const speed = 0) const;
+		void RenameEntry(std::string const& from, std::string const& to) const;
+		void CleanUp(AppliedFileStorage const& storage) const;
+
+		void UpdateState(std::string const& name, State const state) const;
+
 		std::unique_ptr<Path> const _sourceDirectory;
 		std::function<void(std::string const&)> const _apply;
 		std::function<void(Path const& path)> const _applyFile;
@@ -89,6 +105,10 @@ namespace DB
 		static inline std::string GetBaseFile();
 
 		static BaseLocation GetBaseLocationType();
+
+		static QueryResult Retrieve(DBWorkerPool<T>& pool, std::string const& query);
+
+		static void Apply(DBWorkerPool<T>& pool, std::string const& query);
 
 	private:
 		static void ApplyFile(DBWorkerPool<T>& pool, Path const& path);

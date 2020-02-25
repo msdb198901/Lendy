@@ -268,6 +268,23 @@ namespace DB
 	}
 
 	template<typename T>
+	QueryResult DBWorkerPool<T>::Query(char const * sql, T * connection)
+	{
+		if (!connection)
+			connection = GetFreeConnection();
+
+		ResultSet* result = connection->Query(sql);
+		connection->Unlock();
+		if (!result || !result->GetRowCount() || !result->NextRow())
+		{
+			delete result;
+			return QueryResult(nullptr);
+		}
+
+		return QueryResult(result);
+	}
+
+	template<typename T>
 	PreparedQueryResult DBWorkerPool<T>::Query(PreparedStatement * stmt)
 	{
 		auto connection = GetFreeConnection();
@@ -284,6 +301,17 @@ namespace DB
 		}
 
 		return PreparedQueryResult(ret);
+	}
+
+	template<typename T>
+	void DBWorkerPool<T>::DirectExecute(char const * sql)
+	{
+		if (sql == nullptr)
+			return;
+
+		T* connection = GetFreeConnection();
+		connection->Execute(sql);
+		connection->Unlock();
 	}
 
 	template<typename T>

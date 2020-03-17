@@ -6,6 +6,8 @@ CollectSourceFiles(
     ${CMAKE_CURRENT_SOURCE_DIR}
     PRIVATE_SOURCES)
 
+list(APPEND PUBLIC_INCLUDES ${BUILDDIR}/vision_data.h)
+
 add_definitions(-DLENDY_API_EXPORT_COMMON)
 add_library(Util SHARED ${PRIVATE_SOURCES})
 

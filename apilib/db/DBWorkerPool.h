@@ -40,7 +40,7 @@ namespace DB
 
 		//Æô¶¯½Ó¿Ú
 	public:
-		bool Start(DBWorkerPool<T> &pool, std::string const name);
+		bool Start(DBWorkerPool<T> &pool);
 
 	private:
 		using Predicate = std::function<bool()>;

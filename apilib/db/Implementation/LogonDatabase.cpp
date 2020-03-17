@@ -20,6 +20,6 @@ namespace DB
 		{
 			m_stmtStorage.resize(LOGON_MAX_STATEMENTS);
 		}
-		PrepareStatement(LOGON_SEL_ACCOUNT, "select * from  account", CONNECTION_SYNCH);
+		PrepareStatement(LOGON_VISITOR_ACCOUNT, "select * from  account_info", CONNECTION_SYNCH);
 	}
 }

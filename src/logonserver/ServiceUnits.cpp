@@ -97,7 +97,7 @@ namespace Logon
 			return false;
 		}
 
-		LogonDatabasePool.Start(LogonDatabasePool, "Logon");
+		LogonDatabasePool.Start(LogonDatabasePool);
 
 		//读取DB（DB不采用网狐会定义很多变量，直接用回调函数）
 		return true;

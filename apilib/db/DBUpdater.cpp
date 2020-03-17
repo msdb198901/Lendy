@@ -7,6 +7,7 @@
 #include "INIReader.h"
 #include "StringUtility.h"
 #include "SHA1.h"
+#include "GitVision.h"
 
 #include "Field.h"
 #include "QueryResult.h"
@@ -26,10 +27,19 @@ namespace DB
 {
 	using namespace LogComm;
 
+
+	template<typename Fn>
+	static std::string GetStringWithDefaultValueFromFunction(
+		std::string const& key, Fn getter)
+	{
+		std::string const value = sConfigMgr->Get("DB", key, "");
+		return value.empty() ? getter() : value;
+	}
+
 	template<class T>
 	inline bool DBUpdater<T>::Create(DBWorkerPool<T>& pool)
 	{
-		LOG_INFO("sql.updates", "Database \"%s\" does not exist, do you want to create it? [yes (default) / no]: ",
+		LOG_INFO("sql.updates", "数据库 \"%s\" 不存在, 是否进行创建? [yes (default) / no]: ",
 			pool.GetConnectionInfo()->database.c_str());
 
 		std::string answer;
@@ -39,7 +49,7 @@ namespace DB
 			return false;
 		}
 
-		LOG_INFO("sql.updates", "Creating database \"%s\"...", pool.GetConnectionInfo()->database.c_str());
+		LOG_INFO("sql.updates", "正在创建数据库 \"%s\"...", pool.GetConnectionInfo()->database.c_str());
 		
 		static Path const temp("create_table.sql");
 
@@ -72,6 +82,65 @@ namespace DB
 	}
 
 	template<class T>
+	bool DBUpdater<T>::Populate(DBWorkerPool<T>& pool)
+	{
+		QueryResult const result = Retrieve(pool, "SHOW TABLES");
+		if (result && (result->GetRowCount() > 0))
+		{
+			return true;
+		}
+
+		if (!CheckExecutable())
+		{
+			return false;
+		}
+
+		LOG_INFO("sql.updates", "数据库 %s 为空, 自动迁移...", DBUpdater<T>::GetTableName().c_str());
+
+		std::string const p = DBUpdater<T>::GetBaseFile();
+		if (p.empty())
+		{
+			LOG_INFO("sql.updates", ">> 没有基础文件提供, 跳过!");
+			return true;
+		}
+
+		Path const base(p);
+		if (!exists(p))
+		{
+			switch (DBUpdater<T>::GetBaseLocationType())
+			{
+				case LOCATION_REPOSITORY:
+				{
+					LOG_ERROR("sql.updates", ">> 基础文件 \"%s\" 缺失.",
+						base.generic_string().c_str());
+					break;
+				}
+				case LOCATION_DOWNLOAD:
+				{
+					std::string const filename = base.filename().generic_string();
+					LOG_ERROR("sql.updates", ">> 文件 \"%s\" 缺失.", filename.c_str());
+					break;
+				}
+			}
+			return false;
+		}
+
+		LOG_INFO("sql.updates", ">> 正在应用 \'%s\'...", base.generic_string().c_str());
+
+		try
+		{
+			ApplyFile(pool, base);
+		}
+		catch (...)
+		{
+			return false;
+		}
+		LOG_INFO("sql.updates", ">> 完毕!");
+
+		return true;
+	}
+
+	template<class T>
 	bool DBUpdater<T>::Update(DBWorkerPool<T>& pool)
 	{
 		if (!CheckExecutable())
@@ -81,7 +150,7 @@ namespace DB
 
 		LOG_INFO("sql.updates", "正在更新 %s 数据库...", DBUpdater<T>::GetTableName().c_str());
 
-		Path const sourceDirectory(GetBaseFile());
+		Path const sourceDirectory(GetSourceDirectory());
 		if (!is_directory(sourceDirectory))
 		{
 			LOG_ERROR("sql.updates", "更新目录 %s 不存在, 请检查指定sql目录.", sourceDirectory.generic_string().c_str());
@@ -120,14 +189,19 @@ namespace DB
 	template<>
 	std::string DBUpdater<LogonDatabaseConnection>::GetTableName()
 	{
-		return "Auth";
+		return "Auths";
+	}
+
+	template<class T>
+	inline std::string DBUpdater<T>::GetSourceDirectory()
+	{
+		return GetStringWithDefaultValueFromFunction("SourceDirectory", GitVision::GetSourceDirectory);
 	}
 
 	template<>
 	std::string DBUpdater<LogonDatabaseConnection>::GetBaseFile()
 	{
-		return sConfigMgr->Get("DB", "SourceDirectory", "") +
-			"/sql/base/auth_database.sql";
+		return GetSourceDirectory() + "/sql/base/auth_database.sql";
 	}
 
 	// All
@@ -241,11 +315,7 @@ namespace DB
 #endif
 		if (ret != EXIT_SUCCESS)
 		{
-			LOG_FATAL("sql.updates", "Applying of file \'%s\' to database \'%s\' failed!" \
-				" If you are a user, please pull the latest revision from the repository. "
-				"Also make sure you have not applied any of the databases with your sql client. "
-				"You cannot use auto-update system and import sql files from lendy repository with your sql client. "
-				"If you are a developer, please fix your sql query.",
+			LOG_FATAL("sql.updates", "更新文件 \'%s\' 入数据库 \'%s\' 失败!",\
 				path.generic_string().c_str(), pool.GetConnectionInfo()->database.c_str());
 			try
 			{
@@ -588,7 +658,7 @@ namespace DB
 
 		} while (result->NextRow());
 
-		return DirectoryStorage();
+		return directories;
 	}
 
 	UpdateFetcher::AppliedFileStorage UpdateFetcher::ReceiveAppliedFiles() const

@@ -107,7 +107,7 @@ namespace Logon
 		pBindParameter->cbClientKind = LinkType::LT_MOBILE;
 
 		////////////////////////////////////
-		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_ACCOUNT);
+		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_VISITOR_ACCOUNT);
 		PreparedQueryResult result = LogonDatabasePool.Query(stmt);
 
 		while (result)

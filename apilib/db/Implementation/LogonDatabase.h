@@ -6,7 +6,7 @@
 //µÇÂ¼·þÎñÔ¤Éè
 enum LogonDatabaseStatements
 {
-	LOGON_SEL_ACCOUNT,
+	LOGON_VISITOR_ACCOUNT,
 	LOGON_MAX_STATEMENTS
 };
 

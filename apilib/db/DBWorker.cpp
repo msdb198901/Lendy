@@ -16,7 +16,7 @@ namespace DB
 	DBWorker::~DBWorker()
 	{
 		m_cancelationToken = true;
-		//m_queue->Cancel();
+		m_queue->Cancel();
 		m_workerThread.join();
 	}
 

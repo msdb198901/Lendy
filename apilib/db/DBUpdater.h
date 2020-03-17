@@ -43,7 +43,6 @@ namespace DB
 		UpdateResult Update(bool const redundancyChecks, bool const allowRehash,
 			bool const archivedRedundancy, int32 const cleanDeadReferencesMaxCount) const;
 
-		
 	private:
 		
 		typedef std::pair<Path, State> LocaleFileEntry;
@@ -98,11 +97,15 @@ namespace DB
 	public:
 		static bool Create(DBWorkerPool<T>& pool);
 
+		static bool Populate(DBWorkerPool<T>& pool);
+
 		static bool Update(DBWorkerPool<T>& pool);
 
 		static inline std::string GetTableName();
 
-		static inline std::string GetBaseFile();
+		static inline std::string GetSourceDirectory();
+
+		static inline  std::string GetBaseFile();
 
 		static BaseLocation GetBaseLocationType();
 

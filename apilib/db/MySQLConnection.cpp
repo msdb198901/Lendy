@@ -229,7 +229,21 @@ namespace DB
 
 	ResultSet * MySQLConnection::Query(char const * sql)
 	{
-		return nullptr;
+		if (!sql)
+		{
+			return nullptr;
+		}
+
+		MYSQL_RES *result = nullptr;
+		MYSQL_FIELD *fields = nullptr;
+		uint64 rowCount = 0;
+		uint32 fieldCount = 0;
+
+		if (!_Query(sql, &result, &fields, &rowCount, &fieldCount))
+		{
+			return nullptr;
+		}
+		return new ResultSet(result, fields, rowCount, fieldCount);
 	}
 
 	PreparedResultSet * MySQLConnection::Query(PreparedStatement * stmt)
@@ -250,7 +264,43 @@ namespace DB
 
 	bool MySQLConnection::_Query(char const * sql, MYSQL_RES ** pResult, MYSQL_FIELD ** pFields, uint64 * pRowCount, uint32 * pFieldCount)
 	{
-		return false;
+		if (!m_mysql)
+			return false;
+
+		{
+			uint32 _s = getMSTime();
+
+			if (mysql_query(m_mysql, sql))
+			{
+				uint32 lErrno = mysql_errno(m_mysql);
+				LOG_INFO("sql.sql", "SQL: %s", sql);
+				LOG_ERROR("sql.sql", "[%u] %s", lErrno, mysql_error(m_mysql));
+
+				if (_HandleMySQLErrno(lErrno))      // If it returns true, an error was handled successfully (i.e. reconnection)
+					return _Query(sql, pResult, pFields, pRowCount, pFieldCount);    // We try again
+
+				return false;
+			}
+			else
+				LOG_DEBUG("sql.sql", "[%u ms] SQL: %s", getMSTimeDiff(_s, getMSTime()), sql);
+
+			*pResult = mysql_store_result(m_mysql);
+			*pRowCount = mysql_affected_rows(m_mysql);
+			*pFieldCount = mysql_field_count(m_mysql);
+		}
+
+		if (!*pResult)
+			return false;
+
+		if (!*pRowCount)
+		{
+			mysql_free_result(*pResult);
+			return false;
+		}
+
+		*pFields = mysql_fetch_fields(*pResult);
+
+		return true;
 	}
 
 	bool MySQLConnection::_Query(PreparedStatement * stmt, MYSQL_RES ** pResult, uint64 * pRowCount, uint32 * pFieldCount)

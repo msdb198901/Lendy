@@ -19,5 +19,4 @@ target_include_directories(LogonServer
 target_link_libraries(LogonServer 
   PUBLIC
 	DataBase
-    Net
-	DataBase)
+    Net)

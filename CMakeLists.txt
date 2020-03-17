@@ -16,7 +16,6 @@ include(options)
 include(showoptions)
 
 
-
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(OpenSSL REQUIRED)
@@ -24,40 +23,12 @@ if(OPENSSL_FOUND)
     include_directories(${OPENSSL_INCLUDE_DIR})
 endif()
 
-#CollectSourceFiles(
-#    ${CMAKE_SOURCE_DIR}/src 
-#    PRIVATE_SOURCES)
-
-#CollectIncludeDirectories(
-#    ${CMAKE_CURRENT_SOURCE_DIR}
-#    PUBLIC_INCLUDES)
-
-#add_library(Lenpy STATIC ${PRIVATE_SOURCES})
-
-#target_include_directories(Lenpy
-#  PUBLIC
-#    ${PUBLIC_INCLUDES}
-#  PRIVATE
-#    ${CMAKE_CURRENT_BINARY_DIR})
-
-#if (UNIX)
-#target_link_libraries(Lenpy  
-#  PRIVATE
-#    lendy-core-interface
-#  PUBLIC
-#    boost
-#    fmt
-#    mysql
-#    protobuf
-#    )
-#elseif (WIN32)
-#target_link_libraries(Lenpy  
-#  PRIVATE
-#    lendy-core-interface
-#  PUBLIC
-#    ws2_32
-#    )
-#endif()
+set(BUILDDIR ${CMAKE_BINARY_DIR})
+configure_file(
+    "${CMAKE_SOURCE_DIR}/vision_data.h.in.cmake"
+    "${BUILDDIR}/vision_data.h"
+    @ONLY
+  )
 
 add_subdirectory(apilib)
 add_subdirectory(src)

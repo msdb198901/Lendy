@@ -25,7 +25,8 @@ namespace DB
 
 	template<typename T>
 	DBWorkerPool<T>::DBWorkerPool():
-		m_updateFlags(sConfigMgr->GetInt32("DB", "UpdateFlags", 1))
+		m_updateFlags(sConfigMgr->GetInt32("DB", "UpdateFlags", 1)),
+		m_queue(new ProducerConsumerQueue<SQLOperation*>())
 	{
 		if (!mysql_thread_safe())
 		{
@@ -142,10 +143,10 @@ namespace DB
 	}
 
 	template<typename T>
-	bool DBWorkerPool<T>::Start(DBWorkerPool<T> &pool, std::string const name)
+	bool DBWorkerPool<T>::Start(DBWorkerPool<T> &pool)
 	{
 		bool const updatesEnabledForThis = true/*DBUpdater<T>::IsEnabled(_updateFlags)*/;
-
+		std::string name = sConfigMgr->Get("DB", "Name", "");
 		m_open.push([this, name, updatesEnabledForThis, &pool]() -> bool
 		{
 			std::string const dbString = sConfigMgr->Get("DB", "ConnectionInfo", "");
@@ -191,8 +192,13 @@ namespace DB
 
 		if (updatesEnabledForThis)
 		{
-			m_populate.push([this, name]() -> bool
+			m_populate.push([this, &pool, name]() -> bool
 			{
+				if (!DBUpdater<T>::Populate(pool))
+				{
+					LOG_ERROR("sql.driver", "无法迁移 %s 数据库, 详情请查看日志.", name.c_str());
+					return false;
+				}
 				return true;
 			});
 

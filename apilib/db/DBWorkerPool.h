@@ -69,6 +69,10 @@ namespace DB
 		PreparedQueryResult Query(PreparedStatement* stmt);
 
 		void DirectExecute(char const* sql);
+
+		//! Directly executes a one-way SQL operation in prepared statement format, that will block the calling thread until finished.
+		//! Statement must be prepared with the CONNECTION_SYNCH flag.
+		void DirectExecute(PreparedStatement* stmt);
 		
 		//“Ï≤Ω≤È—Ø
 		QueryCallback AsyncQuery(PreparedStatement* stmt);

@@ -1,11 +1,14 @@
 #include "AttemperEngineSink.h"
 #include "CMD_LogonServer.h"
 #include "Implementation/LogonDatabase.h"
+#include "Log.h"
 
 #define MAX_LINK_COUNT 512
 
 namespace Logon
 {
+	using namespace LogComm;
+
 	CAttemperEngineSink::CAttemperEngineSink()
 	{
 		
@@ -106,13 +109,50 @@ namespace Logon
 		//设置连接
 		pBindParameter->cbClientKind = LinkType::LT_MOBILE;
 
+		std::string strDescribe;
+		char szClientIP[15] = {};
+		BYTE * pClientAddr = (BYTE *)&pBindParameter->dwClientAddr;
+		sprintf_s(szClientIP, sizeof(szClientIP), "%d.%d.%d.%d", pClientAddr[0], pClientAddr[1], pClientAddr[2], pClientAddr[3]);
+
 		////////////////////////////////////
-		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_VISITOR_ACCOUNT);
+		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_LIMIT_ADDRESS);
+		stmt->SetString(0, szClientIP);
+		stmt->SetString(1, pLogonVisitor->szMachineID);
 		PreparedQueryResult result = LogonDatabasePool.Query(stmt);
 
-		while (result)
+		if (result)
 		{
 			Field* field = result->Fetch();
+			while (field[3].GetInt8() == 1)
+			{
+				if (field[2].GetUInt32() < time(0))
+				{
+					//更新禁止信息
+					LogonDatabasePool.GetPreparedStatement(LOGON_UPD_LIMIT_ADDRESS);
+					stmt->SetInt8(0, 0);
+					stmt->SetInt8(1, 0);
+					stmt->SetInt8(2, 0);
+					stmt->SetString(3, szClientIP);
+					stmt->SetString(4, pLogonVisitor->szMachineID);
+					LogonDatabasePool.DirectExecute(stmt);
+					break;
+				}
+
+				if (field[0].GetInt8() == 1)
+				{
+					strDescribe = "抱歉地通知您，系统禁止了您所在的 IP 地址的登录功能，请联系客户服务中心了解详细情况！";
+					break;
+				}
+
+				if (field[1].GetInt8() == 1)
+				{
+					strDescribe = "抱歉地通知您，系统禁止了您的机器的登录功能，请联系客户服务中心了解详细情况！";
+					break;
+				}
+				
+				LOG_ERROR("server.logon", "服务器登录逻辑出错 IP: %s  MAC: %s", szClientIP, pLogonVisitor->szMachineID);
+				break;
+			}
 		}
 
 		return true;

@@ -321,6 +321,17 @@ namespace DB
 	}
 
 	template<typename T>
+	void DBWorkerPool<T>::DirectExecute(PreparedStatement * stmt)
+	{
+		T* connection = GetFreeConnection();
+		connection->Execute(stmt);
+		connection->Unlock();
+
+		//! Delete proxy-class. Not needed anymore
+		delete stmt;
+	}
+
+	template<typename T>
 	QueryCallback DBWorkerPool<T>::AsyncQuery(PreparedStatement * stmt)
 	{
 		PreparedQueryResultFuture result;

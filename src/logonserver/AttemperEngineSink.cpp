@@ -4,10 +4,17 @@
 #include "Log.h"
 
 #define MAX_LINK_COUNT 512
+#define OPEN_SWITCH		1
+#define CLIENT_SWITCH	0
 
 namespace Logon
 {
 	using namespace LogComm;
+
+#define LOGON_FAILURE(linkid, errorcode) \
+	if (OnLogonFailure(linkid, errorcode)) { \
+		return true;	\
+	}
 
 	CAttemperEngineSink::CAttemperEngineSink()
 	{
@@ -109,7 +116,7 @@ namespace Logon
 		//设置连接
 		pBindParameter->cbClientKind = LinkType::LT_MOBILE;
 
-		std::string strDescribe;
+		LogonErrorCode eLogonErrorCode = LEC_NONE;
 		char szClientIP[15] = {};
 		BYTE * pClientAddr = (BYTE *)&pBindParameter->dwClientAddr;
 		sprintf_s(szClientIP, sizeof(szClientIP), "%d.%d.%d.%d", pClientAddr[0], pClientAddr[1], pClientAddr[2], pClientAddr[3]);
@@ -123,12 +130,12 @@ namespace Logon
 		if (result)
 		{
 			Field* field = result->Fetch();
-			while (field[3].GetInt8() == 1)
+			while (field[3].GetInt8() == OPEN_SWITCH)
 			{
 				if (field[2].GetUInt32() < time(0))
 				{
 					//更新禁止信息
-					LogonDatabasePool.GetPreparedStatement(LOGON_UPD_LIMIT_ADDRESS);
+					stmt = LogonDatabasePool.GetPreparedStatement(LOGON_UPD_LIMIT_ADDRESS);
 					stmt->SetInt8(0, 0);
 					stmt->SetInt8(1, 0);
 					stmt->SetInt8(2, 0);
@@ -138,23 +145,108 @@ namespace Logon
 					break;
 				}
 
-				if (field[0].GetInt8() == 1)
+				if (field[0].GetInt8() == OPEN_SWITCH)
 				{
-					strDescribe = "抱歉地通知您，系统禁止了您所在的 IP 地址的登录功能，请联系客户服务中心了解详细情况！";
+					eLogonErrorCode = LEC_LIMIT_IP;
 					break;
 				}
 
-				if (field[1].GetInt8() == 1)
+				if (field[1].GetInt8() == OPEN_SWITCH)
 				{
-					strDescribe = "抱歉地通知您，系统禁止了您的机器的登录功能，请联系客户服务中心了解详细情况！";
+					eLogonErrorCode = LEC_LIMIT_MAC;
 					break;
 				}
 				
-				LOG_ERROR("server.logon", "服务器登录逻辑出错 IP: %s  MAC: %s", szClientIP, pLogonVisitor->szMachineID);
+				LOG_ERROR("server.logon", "禁止登录逻辑出错 IP: %s  MAC: %s", szClientIP, pLogonVisitor->szMachineID);
 				break;
 			}
 		}
 
+		//是否禁止登陆
+		LOGON_FAILURE(dwSocketID, eLogonErrorCode)
+
+		//查询用户信息
+		stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_VISITOR_ACCOUNT);
+		stmt->SetString(0, pLogonVisitor->szMachineID);
+		result = LogonDatabasePool.Query(stmt);
+		if (!result)
+		{
+			int game_id = 0;
+			stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_GAME_ID);
+			PreparedQueryResult result_id = LogonDatabasePool.Query(stmt);
+			if (result_id)
+			{
+				Field* field = result_id->Fetch();
+				game_id = field[0].GetInt32();
+
+				//更新标识
+				stmt = LogonDatabasePool.GetPreparedStatement(LOGON_UPD_GAME_ID);
+				LogonDatabasePool.DirectExecute(stmt);
+			}
+			else 
+			{
+				LOG_ERROR("server.logon", "分配游客ID出错 IP: %s  MAC: %s", szClientIP, pLogonVisitor->szMachineID);
+			}
+			
+			//插入游客用户
+			std::string strVisitor = StringFormat("游客%d", game_id);
+			stmt = LogonDatabasePool.GetPreparedStatement(LOGON_INS_VISITOR_ACCOUNT);
+			stmt->SetString(0, strVisitor);
+			stmt->SetString(1, strVisitor);
+			stmt->SetString(2, "");
+			stmt->SetString(3, "1");
+			stmt->SetInt8(4, pBindParameter->cbClientKind);
+			stmt->SetString(5, szClientIP);
+			stmt->SetString(6, pLogonVisitor->szMachineID);
+			LogonDatabasePool.DirectExecute(stmt);
+
+			//重新查询游客
+			stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_VISITOR_ACCOUNT);
+			stmt->SetString(0, pLogonVisitor->szMachineID);
+			result = LogonDatabasePool.Query(stmt);
+			if (!result) 
+			{
+				LOG_ERROR("server.logon", "插入游客ID出错 IP: %s  MAC: %s", szClientIP, pLogonVisitor->szMachineID);
+			}
+		}
+
+		//获取游戏信息
+		Field* field = result->Fetch();
+		int id = field[0].GetInt32();
+		std::string account = field[1].GetString();
+		std::string username = field[2].GetString();
+		std::string sha_pass_hash = field[3].GetString();
+		std::string face_url = field[4].GetString();
+		int limit = field[5].GetInt8();
+
+		//账号冻结状态
+		if ((limit & LEC_LIMIT_FREEZE) > 0)
+		{
+			eLogonErrorCode = LEC_LIMIT_FREEZE;
+		}
+		LOGON_FAILURE(dwSocketID, eLogonErrorCode)
+
+		//更新登陆信息
+		stmt = LogonDatabasePool.GetPreparedStatement(LOGON_UPD_VISITOR_ACCOUNT);
+		stmt->SetString(0, szClientIP);
+		stmt->SetString(1, pLogonVisitor->szMachineID);
+		LogonDatabasePool.DirectExecute(stmt);
+
 		return true;
+	}
+	
+	bool CAttemperEngineSink::OnLogonFailure(uint64 dwSocketID, LogonErrorCode & lec)
+	{
+		if (lec == LEC_NONE)
+		{
+			return false;
+		}
+
+		CMD_MB_LogonFailure LogonFailure;
+		memset(&LogonFailure, 0, sizeof(LogonFailure));
+
+		LogonFailure.lResultCode = lec;
+		sprintf_s(LogonFailure.szDescribe, "%s", LogonError[lec].c_str());
+		return m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_FAILURE, &LogonFailure, sizeof(LogonFailure));
 	}
 }

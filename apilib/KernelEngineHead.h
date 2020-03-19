@@ -49,6 +49,10 @@ namespace Net
 		virtual bool SetTCPNetworkEngineEvent(IUnknownEx * pIUnknownEx) = 0;
 		//设置参数
 		virtual bool SetServiceParameter(std::string strBindIP, uint16 wServicePort, uint16 threadCount) = 0;
+
+	public:
+		//发送函数
+		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize) = 0;
 	};
 
 	//网络事件

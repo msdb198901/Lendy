@@ -40,6 +40,10 @@ namespace Net
 		//读取事件
 		virtual bool OnEventSocketRead(TCP_Command Command, void * pData, uint16 wDataSize, std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem);
 
+	public:
+		//发送函数
+		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize);
+
 		//服务接口
 	public:
 		//启动服务

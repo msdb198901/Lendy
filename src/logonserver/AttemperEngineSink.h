@@ -64,6 +64,10 @@ namespace Logon
 		//ÓÎ¿ÍµÇÂ¼
 		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint64 dwSocketID);
 
+	protected:
+		//µÇÂ½Ê§°Ü
+		bool OnLogonFailure(uint64 dwSocketID, LogonErrorCode &lec);
+
 	private:
 		tagBindParameter *				m_pBindParameter;					//¸¨ÖúÊý×é
 

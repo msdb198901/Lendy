@@ -49,7 +49,8 @@ namespace comm
 	static const int LEN_MACHINE_ID		= 33;
 	//“∆∂ØµÁª∞
 	static const int LEN_MOBILE_PHONE	= 12;	
-
+	//¥ÌŒÛ√Ë ˆ
+	static const int LEN_ERROR_DESCRIBE = 128;
 
 }
 

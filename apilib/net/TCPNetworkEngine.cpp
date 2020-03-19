@@ -90,6 +90,12 @@ namespace Net
 		return true;
 	}
 
+	bool CTCPNetworkEngine::SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize)
+	{
+		
+		return false;
+	}
+
 	bool CTCPNetworkEngine::Start(Net::IOContext* ioContext)
 	{
 		assert(m_threadCount > 0);

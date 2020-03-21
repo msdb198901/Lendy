@@ -31,6 +31,7 @@ namespace Net
 		{ 
 			return m_io.run(); 
 		}
+
 		void stop() 
 		{ 
 			m_io.stop();

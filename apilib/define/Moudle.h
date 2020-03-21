@@ -181,7 +181,7 @@ public:
 };
 
 //组件创建函数
-#define DECLARE_CREATE_MOUDLE(ObjectType)					\
+#define DECLARE_CREATE_MODULE(ObjectType)					\
 extern "C" LENDY_COMMON_API void* Create##ObjectType(GGUID uuid)		\
 {																		\
 	C##ObjectType *pObjectType = nullptr;								\

@@ -22,7 +22,7 @@ namespace DB
 		}
 		
 		PrepareStatement(LOGON_SEL_LIMIT_ADDRESS, "SELECT enjoin_logon,enjoin_reg,UNIX_TIMESTAMP(expire_date),restore FROM limit_address WHERE addr = ? and machine = ?", CONNECTION_SYNCH);
-		PrepareStatement(LOGON_UPD_LIMIT_ADDRESS, "UPDATE enjoin_logon=?,enjoin_reg=?,collect_date=NOW(),restore=? FROM limit_address WHERE addr = ? and machine = ?", CONNECTION_SYNCH);
+		PrepareStatement(LOGON_UPD_LIMIT_ADDRESS, "UPDATE limit_address SET enjoin_logon=?,enjoin_reg=?,collect_date=NOW(),restore=? WHERE addr = ? and machine = ?", CONNECTION_SYNCH);
 		
 		PrepareStatement(LOGON_SEL_GAME_ID, "SELECT gameid FROM platform_id_mgr", CONNECTION_SYNCH);
 		PrepareStatement(LOGON_UPD_GAME_ID, "UPDATE platform_id_mgr SET gameid=gameid+1", CONNECTION_SYNCH);

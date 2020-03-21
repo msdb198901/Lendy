@@ -10753,3 +10753,14 @@ Build/src/logonserver/LogonServer.dir/Debug/LogonServer.tlog/link.17292-rc.write
 Build/src/logonserver/LogonServer.dir/Debug/LogonServer.tlog/link.17292.read.1.tlog
 Build/src/logonserver/LogonServer.dir/Debug/LogonServer.tlog/link.17292.write.1.tlog
 Build/src/logonserver/LogonServer.dir/Debug/LogonServer.tlog/unsuccessfulbuild
+Build/.vs/lendy/v15/ipch/AutoPCH/34bbfee9d9730e2e/FIELD.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/3f28f87e390f0c67/QUERYCALLBACK.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/4a55b62eac6ac0f8/ASYNCHRONISMENGINE.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/68f491c1672e691e/MESSAGEBUFFER.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/97dcddae4dc07e05/ASYNCHRONISMENGINE.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/be5882b6d7e6ce2a/ASYNCHRONISMENGINE.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/d1e8ba6cdf1f906f/QUERYRESULT.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/d4bd7a1228d44ab0/ASYNCHRONISMENGINE.ipch
+Build/apilib/db/DataBase.dir/Debug/TreasureDatabase.obj
+Build/apilib/net/Net.dir/Debug/AsynchronismEngine.obj
+Build/apilib/net/Net.dir/Debug/Net.tlog/link.13596.delete.1.tlog

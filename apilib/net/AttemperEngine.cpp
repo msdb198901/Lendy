@@ -3,11 +3,10 @@
 namespace Net
 {
 	CAttemperEngine::CAttemperEngine():
-		m_ioContext(nullptr),
-		m_pStrand(nullptr),
 		m_pITCPNetworkEngine(nullptr),
 		m_pIAttemperEngineSink(nullptr)
 	{
+		memset(m_cbBuffer, 0, sizeof(m_cbBuffer));
 	}
 
 	CAttemperEngine::~CAttemperEngine()
@@ -16,39 +15,47 @@ namespace Net
 
 	bool CAttemperEngine::Start(Net::IOContext* ioContext)
 	{
-		if (ioContext)
-		{
-			m_ioContext = ioContext;
-			m_pStrand = new Net::Strand(*ioContext);
-		}
-
 		//效验参数
 		assert(m_pIAttemperEngineSink != nullptr);
 		if (m_pIAttemperEngineSink == nullptr) return false;
 
-		//启动通知
-		if (!m_pIAttemperEngineSink->OnAttemperEngineStart(QUERY_ME_INTERFACE(IUnknownEx)))
+		//注册对象
+		IUnknownEx * pIAsynchronismEngineSink = QUERY_ME_INTERFACE(IUnknownEx);
+		if (m_AsynchronismEngine.SetAsynchronismSink(pIAsynchronismEngineSink) == false)
 		{
 			assert(nullptr);
 			return false;
 		}
+
+		//异步引擎
+		if (!m_AsynchronismEngine.Start(ioContext))
+		{
+			assert(nullptr);
+			return false;
+		}
+		////启动通知
+		//if (!m_pIAttemperEngineSink->OnAttemperEngineStart(QUERY_ME_INTERFACE(IUnknownEx)))
+		//{
+		//	assert(nullptr);
+		//	return false;
+		//}
 		return true;
 	}
 
 	bool CAttemperEngine::Stop()
 	{
-		PDELETE(m_pStrand);
+		m_AsynchronismEngine.Stop();
 
-		//效验参数
-		assert(m_pIAttemperEngineSink != nullptr);
-		if (m_pIAttemperEngineSink == nullptr) return false;
+		////效验参数
+		//assert(m_pIAttemperEngineSink != nullptr);
+		//if (m_pIAttemperEngineSink == nullptr) return false;
 
 		//启动通知
-		if (!m_pIAttemperEngineSink->OnAttemperEngineConclude(QUERY_ME_INTERFACE(IUnknownEx)))
-		{
-			assert(nullptr);
-			return false;
-		}
+		//if (!m_pIAttemperEngineSink->OnAttemperEngineConclude(QUERY_ME_INTERFACE(IUnknownEx)))
+		//{
+		//	assert(nullptr);
+		//	return false;
+		//}
 		return true;
 	}
 
@@ -61,6 +68,7 @@ namespace Net
 	{
 		QUERY_INTERFACE(IAttemperEngine, uuid);
 		QUERY_INTERFACE(ITCPNetworkEngineEvent, uuid);
+		QUERY_INTERFACE(IAsynchronismEngineSink, uuid);
 		QUERY_INTERFACE_IUNKNOWNEX(IAttemperEngine, uuid);
 		return nullptr;
 	}
@@ -99,40 +107,130 @@ namespace Net
 
 	bool CAttemperEngine::OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize)
 	{
-		if (m_ioContext)
-		{
-			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wControlID, pData, wDataSize]() {m_pIAttemperEngineSink->OnEventControl(wControlID, pData, wDataSize); }));
-		}
+		//if (m_ioContext)
+		//{
+		//	Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wControlID, pData, wDataSize]() {m_pIAttemperEngineSink->OnEventControl(wControlID, pData, wDataSize); }));
+		//}
 		return true;
 	}
 
 	bool CAttemperEngine::OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr)
 	{
-		if (m_ioContext)
-		{
-			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwClientAddr, dwSocketID]() {m_pIAttemperEngineSink->OnEventTCPNetworkBind(dwClientAddr, dwSocketID); }));
-		}
+		//if (m_ioContext)
+		//{
+		//	Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwClientAddr, dwSocketID]() {m_pIAttemperEngineSink->OnEventTCPNetworkBind(dwClientAddr, dwSocketID); }));
+		//}
 		return true;
 	}
 
 	bool CAttemperEngine::OnEventTCPNetworkShut(uint64 dwSocketID, uint64 dwClientAddr)
 	{
-		if (m_ioContext)
-		{
-			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwClientAddr, dwSocketID]() { m_pIAttemperEngineSink->OnEventTCPNetworkShut(dwClientAddr, dwSocketID); }));
-		}
+		//if (m_ioContext)
+		//{
+		//	Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwClientAddr, dwSocketID]() { m_pIAttemperEngineSink->OnEventTCPNetworkShut(dwClientAddr, dwSocketID); }));
+		//}
 		return true;
 	}
 	bool CAttemperEngine::OnEventTCPNetworkRead(uint64 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize)
 	{
-		if (m_ioContext)
+		assert((wDataSize + sizeof(AS_TCPNetworkReadEvent)) <= SOCKET_TCP_BUFFER);
+		if ((wDataSize + sizeof(AS_TCPNetworkReadEvent)) > SOCKET_TCP_BUFFER) return false;
+
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_TCPNetworkReadEvent* pReadEvent = (AS_TCPNetworkReadEvent *)m_cbBuffer;
+
+		//构造数据
+		pReadEvent->Command = Command;
+		pReadEvent->wDataSize = wDataSize;
+		pReadEvent->dwSocketID = dwSocketID;
+
+		//附加数据
+		if (wDataSize > 0)
 		{
-			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwSocketID, Command, pData, wDataSize]() { m_pIAttemperEngineSink->OnEventTCPNetworkRead(Command, pData, wDataSize, dwSocketID);}));
+			assert(pData != NULL);
+			memcpy(m_cbBuffer + sizeof(AS_TCPNetworkReadEvent), pData, wDataSize);
+		}
+
+		m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_READ, m_cbBuffer, sizeof(AS_TCPNetworkReadEvent) + wDataSize);
+		return true;
+	}
+
+	bool CAttemperEngine::OnAsynchronismEngineStart()
+	{
+		//效验参数
+		assert(m_pIAttemperEngineSink != nullptr);
+		if (m_pIAttemperEngineSink == nullptr) return false;
+
+		//启动通知
+		if (!m_pIAttemperEngineSink->OnAttemperEngineStart(QUERY_ME_INTERFACE(IUnknownEx)))
+		{
+			assert(nullptr);
+			return false;
 		}
 		return true;
 	}
 
-	DECLARE_CREATE_MOUDLE(AttemperEngine);
+	bool CAttemperEngine::OnAsynchronismEngineConclude()
+	{
+		//效验参数
+		assert(m_pIAttemperEngineSink != nullptr);
+		if (m_pIAttemperEngineSink == nullptr) return false;
+
+		//停止通知
+		if (!m_pIAttemperEngineSink->OnAttemperEngineConclude(QUERY_ME_INTERFACE(IUnknownEx)))
+		{
+			assert(nullptr);
+			return false;
+		}
+		return true;
+	}
+
+	bool CAttemperEngine::OnAsynchronismEngineData(uint16 wIdentifier, void * pData, uint16 wDataSize)
+	{
+		//效验参数
+		assert(m_pITCPNetworkEngine != NULL);
+		assert(m_pIAttemperEngineSink != NULL);
+
+		//内核事件
+		switch (wIdentifier)
+		{
+			case EVENT_TCP_CLIENT_READ:		//读取事件
+			{
+				//效验大小
+				AS_TCPNetworkReadEvent * pReadEvent = (AS_TCPNetworkReadEvent *)pData;
+
+				//大小断言
+				assert(wDataSize >= sizeof(AS_TCPNetworkReadEvent));
+				assert(wDataSize == (sizeof(AS_TCPNetworkReadEvent) + pReadEvent->wDataSize));
+
+				//大小效验
+				if (wDataSize < sizeof(AS_TCPNetworkReadEvent))
+				{
+					m_pITCPNetworkEngine->CloseSocket(pReadEvent->dwSocketID);
+					return false;
+				}
+
+				//大小效验
+				if (wDataSize != (sizeof(AS_TCPNetworkReadEvent) + pReadEvent->wDataSize))
+				{
+					m_pITCPNetworkEngine->CloseSocket(pReadEvent->dwSocketID);
+					return false;
+				}
+
+				//处理消息
+				bool bSuccess = m_pIAttemperEngineSink->OnEventTCPNetworkRead(pReadEvent->Command, pReadEvent + 1, pReadEvent->wDataSize, pReadEvent->dwSocketID);
+				
+				//失败处理
+				if (!bSuccess) m_pITCPNetworkEngine->CloseSocket(pReadEvent->dwSocketID);
+				
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	DECLARE_CREATE_MODULE(AttemperEngine);
 }
 	 
 

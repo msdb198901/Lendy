@@ -28,7 +28,7 @@ namespace Logon
 
 	typedef std::pair<LogonErrorCode, std::string> K;
 	typedef std::unordered_map<LogonErrorCode, std::string> LogonErrorContainer;
-	LogonErrorContainer LogonError =
+	static LogonErrorContainer LogonError =
 	{
 		K(LEC_LIMIT_IP, "抱歉地通知您，系统禁止了您所在的 IP 地址的登录功能，请联系客户服务中心了解详细情况！"),
 		K(LEC_LIMIT_MAC, "抱歉地通知您，系统禁止了您的机器的登录功能，请联系客户服务中心了解详细情况！"),

@@ -3,6 +3,25 @@
 
 namespace Net
 {
+#define ASYNCHRONISM_SEND_DATA		1									//发送标识
+#define ASYNCHRONISM_CLOSE_SOCKET	5									//关闭连接
+
+	//关闭连接
+	struct tagCloseSocket
+	{
+		uint16							wIndex;								//连接索引
+	};
+
+	//发送请求
+	struct tagSendData
+	{
+		uint16							wIndex;								//连接索引
+		uint16							wMainCmdID;							//主命令码
+		uint16							wSubCmdID;							//子命令码
+		uint16							wDataSize;							//数据大小
+		uint8							cbSendBuffer[SOCKET_TCP_PACKET];	//发送缓冲
+	};
+
 	CTCPNetworkEngine::CTCPNetworkEngine() :
 		m_curIndex(0),
 		m_strBindIP(""),
@@ -24,8 +43,9 @@ namespace Net
 
 	void * CTCPNetworkEngine::QueryInterface(GGUID uuid)
 	{
-		QUERY_INTERFACE(IServiceMoudle, uuid);
+		QUERY_INTERFACE(IServiceModule, uuid);
 		QUERY_INTERFACE(ITCPNetworkEngine, uuid);
+		QUERY_INTERFACE(IAsynchronismEngineSink, uuid);
 		QUERY_INTERFACE_IUNKNOWNEX(ITCPNetworkEngine, uuid);
 		return nullptr;
 	}
@@ -56,6 +76,36 @@ namespace Net
 		m_port = port;
 		m_threadCount = threadCount;
 		return true;
+	}
+
+	bool CTCPNetworkEngine::OnAsynchronismEngineData(uint16 wIdentifier, void * pData, uint16 wDataSize)
+	{
+		switch (wIdentifier)
+		{
+			case ASYNCHRONISM_SEND_DATA:		//发送请求
+			{
+				//效验数据
+				tagSendData * pSendDataRequest = (tagSendData *)pData;
+				assert(wDataSize >= (sizeof(tagSendData) - sizeof(pSendDataRequest->cbSendBuffer)));
+				assert(wDataSize == (pSendDataRequest->wDataSize + sizeof(tagSendData) - sizeof(pSendDataRequest->cbSendBuffer)));
+
+				//获取对象
+				CTCPNetworkItem* pTCPNetworkItem = GetNetworkItem(pSendDataRequest->wIndex);
+				if (pTCPNetworkItem == NULL) return false;
+
+				//发送数据
+				std::lock_guard<std::mutex> _lock(m_mutex);
+				MessageBuffer buff(pSendDataRequest->wDataSize);
+				buff.Write(pSendDataRequest->cbSendBuffer, pSendDataRequest->wDataSize);
+				pTCPNetworkItem->QueuePacket(std::move(buff));
+				return true;
+			}
+			case ASYNCHRONISM_CLOSE_SOCKET:
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	bool CTCPNetworkEngine::OnEventSocketBind(std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem)
@@ -92,12 +142,51 @@ namespace Net
 
 	bool CTCPNetworkEngine::SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize)
 	{
-		
-		return false;
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		tagSendData * pSendDataRequest = (tagSendData *)m_cbBuffer;
+
+		//构造数据
+		pSendDataRequest->wDataSize = wDataSize;
+		pSendDataRequest->wSubCmdID = wSubCmdID;
+		pSendDataRequest->wMainCmdID = wMainCmdID;
+		pSendDataRequest->wIndex = dwSocketID;
+		if (wDataSize > 0)
+		{
+			assert(pData != NULL);
+			memcpy(pSendDataRequest->cbSendBuffer, pData, wDataSize);
+		}
+
+		//发送请求
+		uint16 wSendSize = sizeof(tagSendData) - sizeof(pSendDataRequest->cbSendBuffer) + wDataSize;
+		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_SEND_DATA, m_cbBuffer, wSendSize);
+	}
+
+	bool CTCPNetworkEngine::CloseSocket(uint64 dwSocketID)
+	{
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		tagCloseSocket *pCloseSocket = (tagCloseSocket*)m_cbBuffer;
+		pCloseSocket->wIndex = dwSocketID;
+		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_CLOSE_SOCKET, m_cbBuffer, sizeof(tagCloseSocket));
 	}
 
 	bool CTCPNetworkEngine::Start(Net::IOContext* ioContext)
 	{
+		//异步引擎
+		IUnknownEx * pIUnknownEx = QUERY_ME_INTERFACE(IUnknownEx);
+		if (m_AsynchronismEngine.SetAsynchronismSink(pIUnknownEx) == false)
+		{
+			assert(nullptr);
+			return false;
+		}
+
+		//启动服务
+		if (m_AsynchronismEngine.Start(ioContext) == false)
+		{
+			assert(nullptr);
+			return false;
+		}
+
 		assert(m_threadCount > 0);
 		if (m_threadCount == 0) return false;
 
@@ -217,12 +306,18 @@ namespace Net
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketBind, this, std::placeholders::_1),
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketShut, this, std::placeholders::_1),
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketRead, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+			m_NetItemStore.insert(std::make_pair(m_curIndex, pTCPNetworkItem.get()));
 		}
 		return pTCPNetworkItem;
 	}
 
-	std::shared_ptr<CTCPNetworkItem> CTCPNetworkEngine::GetNetworkItem(uint16 wIndex)
+	CTCPNetworkItem* CTCPNetworkEngine::GetNetworkItem(uint16 wIndex)
 	{
+		auto k = m_NetItemStore.find(wIndex);
+		if (k != m_NetItemStore.end())
+		{
+			return m_NetItemStore[wIndex];
+		}
 		return nullptr;
 	}
 
@@ -237,5 +332,5 @@ namespace Net
 		return new CTCPNetworkThread<CTCPNetworkItem>[1];
 	}
 
-	DECLARE_CREATE_MOUDLE(TCPNetworkEngine);
+	DECLARE_CREATE_MODULE(TCPNetworkEngine);
 }

@@ -10,8 +10,8 @@
 #define NETWORK_ENGINE_DLL_NAME		"Net.dll"
 //#define DATABASE_ENGINE_DLL_NAME	"DataBase.dll"
 
-static GGUID IID_IServiceMoudle = { 0xee6657db, 0x739e, 0x48c4, { 0x96, 0x73, 0x25, 0xce, 0x44, 0xd0, 0xc1, 0xf } };
-struct IServiceMoudle : public IUnknownEx
+static GGUID IID_IServiceModule = { 0xee6657db, 0x739e, 0x48c4, { 0x96, 0x73, 0x25, 0xce, 0x44, 0xd0, 0xc1, 0xf } };
+struct IServiceModule : public IUnknownEx
 {
 public:
 	virtual bool Start(Net::IOContext*) = 0;
@@ -21,13 +21,38 @@ public:
 ///////////
 namespace Net
 {
+	static GGUID IID_IAsynchronismEngine = { 0x50312e19, 0x7245, 0x4ea7, { 0xac, 0xb0, 0x2c, 0xe8, 0xe4, 0xfd, 0xcd, 0x9c } };
+	static GGUID IID_IAsynchronismEngineSink = { 0x22131182, 0xfdb1, 0x4cfe, { 0xa2, 0xa1, 0x14, 0x19, 0x29, 0x87, 0xca, 0x4b } };
 	static GGUID IID_ITCPNetworkEngine = { 0xc876f8aa, 0x199f, 0x48fc, { 0x96, 0x1a, 0x6, 0x67, 0xbc, 0xf3, 0xad, 0xdf } };
 	static GGUID IID_IAttemperEngine = { 0x2b972bac, 0x1c76, 0x4e3c, { 0xb9, 0x19, 0x39, 0x43, 0xf4, 0x31, 0x71, 0x83 } };
 	static GGUID IID_ITCPNetworkEngineEvent = { 0x507976f6, 0xfc24, 0x4c51, { 0xac, 0xd, 0x60, 0x2f, 0x87, 0x71, 0xfc, 0x83 } };
 	static GGUID IID_IAttemperEngineSink = { 0x3620c4d7, 0xfe6, 0x4eee, { 0xad, 0x4f, 0x79, 0xac, 0x23, 0x97, 0xc7, 0x62 } };
 	
+	//异步引擎
+	struct IAsynchronismEngine : public IServiceModule
+	{
+		//配置接口
+	public:
+		//设置模块
+		virtual bool SetAsynchronismSink(IUnknownEx * pIUnknownEx) = 0;
+
+		//异步数据
+		virtual bool PostAsynchronismData(uint16 wIdentifier, void * pData, uint16 wDataSize) = 0;
+	};
+
+	//异步钩子
+	struct IAsynchronismEngineSink : public IUnknownEx
+	{
+		//启动事件
+		virtual bool OnAsynchronismEngineStart() = 0;
+		//停止事件
+		virtual bool OnAsynchronismEngineConclude() = 0;
+		//异步数据
+		virtual bool OnAsynchronismEngineData(uint16 wIdentifier, void * pData, uint16 wDataSize) = 0;
+	};
+
 	//调度引擎
-	struct IAttemperEngine : public IServiceMoudle
+	struct IAttemperEngine : public IServiceModule
 	{
 		//配置接口
 	public:
@@ -42,7 +67,7 @@ namespace Net
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize) = 0;
 	};
 
-	struct ITCPNetworkEngine : public IServiceMoudle
+	struct ITCPNetworkEngine : public IServiceModule
 	{
 	public:
 		//设置调度
@@ -53,10 +78,15 @@ namespace Net
 	public:
 		//发送函数
 		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize) = 0;
+	
+		//控制接口
+	public:
+		//关闭连接
+		virtual bool CloseSocket(uint64 dwSocketID) = 0;
 	};
 
 	//网络事件
-	struct ITCPNetworkEngineEvent : public IServiceMoudle
+	struct ITCPNetworkEngineEvent : public IServiceModule
 	{
 		//接口定义
 	public:
@@ -96,28 +126,5 @@ namespace Net
 	DECLARE_MOUDLE_HELPER(AttemperEngine, NETWORK_ENGINE_DLL_NAME, "CreateAttemperEngine")
 	DECLARE_MOUDLE_HELPER(TCPNetworkEngine, NETWORK_ENGINE_DLL_NAME, "CreateTCPNetworkEngine")
 }
-
-//namespace DB
-//{
-//	static GGUID IID_IDataBaseEngine = { 0xacfc49b6, 0xa29e, 0x47f8, { 0x9c, 0xbd, 0x80, 0x9d, 0xa0, 0xba, 0xc8, 0x4e } };
-//
-//	struct IDataBaseEngine : public IServiceMoudle
-//	{
-//
-//	public:
-//		virtual bool SetPreparedStatement(std::string const& dbname) = 0;
-//
-//		//获取预设
-//		virtual PreparedStatement* GetPreparedStatement(LoginDatabaseStatements index) = 0;
-//
-//		//同步查询
-//		virtual PreparedQueryResult Query(PreparedStatement* stmt) = 0;
-//
-//		//异步查询
-//		virtual QueryCallback AsyncQuery(PreparedStatement* stmt) = 0;
-//	};
-//
-//	DECLARE_MOUDLE_HELPER(DataBaseEngine, DATABASE_ENGINE_DLL_NAME, "CreateDataBaseEngine")
-//}
 
 #endif

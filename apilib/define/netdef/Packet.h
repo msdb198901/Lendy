@@ -19,6 +19,9 @@
 #define SOCKET_TCP_BUFFER			16384								//网络缓冲
 #define SOCKET_TCP_PACKET			(SOCKET_TCP_BUFFER-sizeof(TCP_Head))//网络缓冲
 
+
+#define EVENT_TCP_CLIENT_READ		0x0008								//读取事件
+
 namespace Net
 {
 	//////////////////////////////////////////////////////////////////////////////////
@@ -52,12 +55,17 @@ namespace Net
 		char							szValidateKey[64];					//验证字符
 	};
 
-	////网络缓冲
-	//struct TCP_Buffer
-	//{
-	//	TCP_Head						Head;								//数据包头
-	//	uint8							cbBuffer[SOCKET_TCP_PACKET];		//数据缓冲
-	//};
+	//////////////////////////////////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////////////////////////////
+	//读取事件
+	struct AS_TCPNetworkReadEvent
+	{
+		uint16							wDataSize;							//数据大小
+		uint64							dwSocketID;							//网络标识
+		TCP_Command						Command;							//命令信息
+	};
+
 
 	//////////////////////////////////////////////////////////////////////////////////
 //数据定义

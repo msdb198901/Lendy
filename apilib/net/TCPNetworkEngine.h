@@ -3,12 +3,16 @@
 
 #include "netdef/AsyncAcceptor.h"
 #include "../KernelEngineHead.h"
+#include "AsynchronismEngine.h"
 #include "TCPNetworkThread.h"
 #include "TCPNetworkItem.h"
 
+
+#include <unordered_map>
+
 namespace Net
 {
-	class CTCPNetworkEngine : public ITCPNetworkEngine, public ITCPNetworkItemSink
+	class CTCPNetworkEngine : public ITCPNetworkEngine, public ITCPNetworkItemSink, public IAsynchronismEngineSink
 	{
 		//函数定义
 	public:
@@ -22,7 +26,6 @@ namespace Net
 	public:
 		//释放对象
 		virtual void Release();
-
 		//接口查询
 		virtual void * QueryInterface(GGUID uuid);
 
@@ -31,6 +34,15 @@ namespace Net
 		virtual bool SetTCPNetworkEngineEvent(IUnknownEx * pIUnknownEx);
 		//设置参数
 		virtual bool SetServiceParameter(std::string strBindIP, uint16 port, uint16 threadCount);
+
+		//异步接口
+	public:
+		//启动事件
+		virtual bool OnAsynchronismEngineStart() { return true; }
+		//停止事件
+		virtual bool OnAsynchronismEngineConclude() { return true; }
+		//异步数据
+		virtual bool OnAsynchronismEngineData(uint16 wIdentifier, VOID * pData, uint16 wDataSize);
 
 	public:
 		//绑定事件
@@ -43,6 +55,11 @@ namespace Net
 	public:
 		//发送函数
 		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize);
+
+		//控制接口
+	public:
+		//关闭连接
+		virtual bool CloseSocket(uint64 dwSocketID);
 
 		//服务接口
 	public:
@@ -68,7 +85,7 @@ namespace Net
 		//激活空闲对象
 		std::shared_ptr<CTCPNetworkItem> ActiveNetworkItem(tcp::socket && _socket);
 		//获取对象
-		std::shared_ptr<CTCPNetworkItem> GetNetworkItem(uint16 wIndex);
+		CTCPNetworkItem* GetNetworkItem(uint16 wIndex);
 		//释放连接对象
 		bool FreeNetworkItem(std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem);
 
@@ -76,16 +93,25 @@ namespace Net
 		virtual CTCPNetworkThread<CTCPNetworkItem>* CreateThreads();
 
 	private:
-		uint16								m_curIndex;
-		std::string							m_strBindIP;
-		uint16								m_port;
-		AsyncAcceptor*						m_acceptor;
+		uint16											m_curIndex;
+		std::string										m_strBindIP;
+		uint16											m_port;
+		AsyncAcceptor*									m_acceptor;
 
-		uint16								m_threadCount;
-		CTCPNetworkThread<CTCPNetworkItem>*	m_pThreads;
-		std::deque<std::shared_ptr<CTCPNetworkItem>> m_NetworkFreeItem;
+		uint16											m_threadCount;
+		CTCPNetworkThread<CTCPNetworkItem>*				m_pThreads;
+		std::deque<std::shared_ptr<CTCPNetworkItem>>	m_NetworkFreeItem;
 
-		ITCPNetworkEngineEvent*				m_pITCPNetworkEngineEvent;			//事件接口
+		ITCPNetworkEngineEvent*							m_pITCPNetworkEngineEvent;			//事件接口
+
+	private:
+		CAsynchronismEngine								m_AsynchronismEngine;				//异步对象
+		std::unordered_map<uint64, CTCPNetworkItem*>	m_NetItemStore;
+
+		//辅助变量
+	protected:
+		std::mutex						m_mutex;
+		BYTE							m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
 	};
 }
 

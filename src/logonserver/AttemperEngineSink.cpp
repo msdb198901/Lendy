@@ -2,6 +2,7 @@
 #include "CMD_LogonServer.h"
 #include "Implementation/LogonDatabase.h"
 #include "Log.h"
+#include "StringUtility.h"
 
 #define MAX_LINK_COUNT 512
 #define OPEN_SWITCH		1
@@ -118,7 +119,7 @@ namespace Logon
 
 		LogonErrorCode eLogonErrorCode = LEC_NONE;
 		BYTE * pClientAddr = (BYTE *)&pBindParameter->dwClientAddr;
-		std::string strClientIP = StringFormat("%d.%d.%d.%d", pClientAddr[0], pClientAddr[1], pClientAddr[2], pClientAddr[3]);
+		std::string strClientIP = StringFormat("%d.%d.%d.%d", pClientAddr[3], pClientAddr[2], pClientAddr[1], pClientAddr[0]);
 
 		////////////////////////////////////
 		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_LIMIT_ADDRESS);
@@ -186,12 +187,16 @@ namespace Logon
 			{
 				LOG_ERROR("server.logon", "分配游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
 			}
-			
+
+
 			//插入游客用户
 			std::string strVisitor = StringFormat("游客%d", game_id);
 			stmt = LogonDatabasePool.GetPreparedStatement(LOGON_INS_VISITOR_ACCOUNT);
-			stmt->SetString(0, strVisitor);
-			stmt->SetString(1, strVisitor);
+			
+			std::string strUTF8Visitor;
+			Util::StringUtility::ConsoleToUtf8(strVisitor, strUTF8Visitor);
+			stmt->SetString(0, strUTF8Visitor);
+			stmt->SetString(1, strUTF8Visitor);
 			stmt->SetString(2, "");
 			stmt->SetString(3, "1");
 			stmt->SetInt8(4, pBindParameter->cbClientKind);
@@ -215,6 +220,8 @@ namespace Logon
 		int id = field[0].GetInt32();
 		std::string account = field[1].GetString();
 		std::string username = field[2].GetString();
+		std::string strAnsiVisitor;
+		Util::StringUtility::Utf8ToConsole(account, strAnsiVisitor);
 		std::string sha_pass_hash = field[3].GetString();
 		std::string face_url = field[4].GetString();
 		int limit = field[5].GetInt8();
@@ -246,7 +253,9 @@ namespace Logon
 		memset(&LogonFailure, 0, sizeof(LogonFailure));
 
 		LogonFailure.lResultCode = lec;
-		sprintf_s(LogonFailure.szDescribe, "%s", LogonError[lec].c_str());
+		std::wstring wstrLogonError = Util::StringUtility::StringToWString(LogonError[lec]);
+		swprintf_s(LogonFailure.szDescribe, L"%s", wstrLogonError.c_str());
+
 		return m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_FAILURE, &LogonFailure, sizeof(LogonFailure));
 	}
 }

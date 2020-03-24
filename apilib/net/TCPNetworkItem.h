@@ -56,6 +56,8 @@ namespace Net
 
 		void AsyncRead();
 
+		bool SendData(uint16 wMainCmdID, uint16 wSubCmdID, void *pData, uint16 wDataSize);
+
 		void QueuePacket(MessageBuffer&& buffer);
 
 		bool IsOpen() const;

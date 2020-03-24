@@ -33,5 +33,3 @@ xcopy %src_file_path%\db\Debug\*.dll %dst_file_path%\Debug /s /e /y
 xcopy %src_file_path%\Debug\*.lib %dst_file_path%\Debug /s /e /y
 xcopy %src_file_path%\Debug\*.dll %dst_file_path%\Debug /s /e /y
 xcopy %config_file_path%\*.ini %dst_file_path%\Debug /s /e /y
-
-pause

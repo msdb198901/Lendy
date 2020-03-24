@@ -43,9 +43,31 @@ namespace Util
 		static bool Bin2Hex(const char* bin_str, std::string* hex_str);
 
 		//////////////////////////////////////////////////////////
+		//Ansi <-> Unicode <-> Utf8
 		static void UTF8Printf(FILE* out, const char *str, ...);
 
 		static void VUTF8Printf(FILE* out, const char *str, va_list* ap);
+
+		static bool Utf8toWStr(const std::string& utf8str, std::wstring& wstr);
+
+		static bool IsBasicLatinCharacter(wchar_t wchar);
+
+		static wchar_t wcharToUpper(wchar_t wchar);
+	
+		static wchar_t wcharToUpperOnlyLatin(wchar_t wchar);
+		
+		static bool WStrToUtf8(std::wstring const& wstr, std::string& utf8str);
+		
+		static bool Utf8ToUpperOnlyLatin(std::string& utf8String);
+		
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
+		static std::wstring StringToWString(const std::string& str);
+
+		static std::string WStringToString(const std::wstring& wtr);
+#endif
+		static bool ConsoleToUtf8(const std::string& conStr, std::string& utf8str);
+
+		static bool Utf8ToConsole(const std::string& utf8str, std::string& conStr);
 
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 		static struct tm* localtime_r(time_t const* time, struct tm *result);

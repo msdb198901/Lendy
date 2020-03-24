@@ -1,0 +1,9 @@
+1、桌面有个 copy_so.bat 文件
+2、将copy_so.bat 改名为 copy_so.exe
+3、将 copy_so.exe 拉到任务栏
+4、修改桌面的 copy_so.exe 回 copy_so.bat
+5、打开C:\Users\Administrator\AppData\Roaming\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar 快速启动栏路径
+6、找到 copy_so.exe 文件，右键该文件--属性，将文件路径${Project}\copy_so.exe 改为${Project}\copy_so.bat
+7、点应用，即可
+
+注：${Project}为copy_so.bat根目录

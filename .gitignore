@@ -10764,3 +10764,7 @@ Build/.vs/lendy/v15/ipch/AutoPCH/d4bd7a1228d44ab0/ASYNCHRONISMENGINE.ipch
 Build/apilib/db/DataBase.dir/Debug/TreasureDatabase.obj
 Build/apilib/net/Net.dir/Debug/AsynchronismEngine.obj
 Build/apilib/net/Net.dir/Debug/Net.tlog/link.13596.delete.1.tlog
+Build/apilib/dep/utf8cpp/cmake_install.cmake
+Build/apilib/dep/utf8cpp/CMakeFiles/generate.stamp
+Build/apilib/dep/utf8cpp/CMakeFiles/generate.stamp.depend
+Build/apilib/util/Util.dir/Debug/Util.tlog/link.27260.delete.1.tlog

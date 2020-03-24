@@ -116,20 +116,30 @@ namespace Net
 
 	bool CAttemperEngine::OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr)
 	{
-		//if (m_ioContext)
-		//{
-		//	Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwClientAddr, dwSocketID]() {m_pIAttemperEngineSink->OnEventTCPNetworkBind(dwClientAddr, dwSocketID); }));
-		//}
-		return true;
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_TCPNetworkAcceptEvent * pAcceptEvent = (AS_TCPNetworkAcceptEvent *)m_cbBuffer;
+
+		//构造数据
+		pAcceptEvent->dwSocketID = dwSocketID;
+		pAcceptEvent->dwClientAddr = dwClientAddr;
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_ACCEPT, m_cbBuffer, sizeof(AS_TCPNetworkAcceptEvent));
 	}
 
 	bool CAttemperEngine::OnEventTCPNetworkShut(uint64 dwSocketID, uint64 dwClientAddr)
 	{
-		//if (m_ioContext)
-		//{
-		//	Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, dwClientAddr, dwSocketID]() { m_pIAttemperEngineSink->OnEventTCPNetworkShut(dwClientAddr, dwSocketID); }));
-		//}
-		return true;
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_TCPNetworkShutEvent * pCloseEvent = (AS_TCPNetworkShutEvent *)m_cbBuffer;
+
+		//构造数据
+		pCloseEvent->dwSocketID = dwSocketID;
+		pCloseEvent->dwClientAddr = dwClientAddr;
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_SHUT, m_cbBuffer, sizeof(AS_TCPNetworkShutEvent));
 	}
 	bool CAttemperEngine::OnEventTCPNetworkRead(uint64 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize)
 	{
@@ -151,8 +161,7 @@ namespace Net
 			memcpy(m_cbBuffer + sizeof(AS_TCPNetworkReadEvent), pData, wDataSize);
 		}
 
-		m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_READ, m_cbBuffer, sizeof(AS_TCPNetworkReadEvent) + wDataSize);
-		return true;
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_READ, m_cbBuffer, sizeof(AS_TCPNetworkReadEvent) + wDataSize); 
 	}
 
 	bool CAttemperEngine::OnAsynchronismEngineStart()
@@ -194,6 +203,28 @@ namespace Net
 		//内核事件
 		switch (wIdentifier)
 		{
+			case EVENT_TCP_CLIENT_ACCEPT:
+			{
+				//大小断言
+				assert(wDataSize == sizeof(AS_TCPNetworkAcceptEvent));
+				if (wDataSize != sizeof(AS_TCPNetworkAcceptEvent)) return false;
+
+				//变量定义
+				bool bSuccess = false;
+				AS_TCPNetworkAcceptEvent * pAcceptEvent = (AS_TCPNetworkAcceptEvent *)pData;
+
+				//处理消息
+				try
+				{
+					bSuccess = m_pIAttemperEngineSink->OnEventTCPNetworkBind(pAcceptEvent->dwClientAddr, pAcceptEvent->dwSocketID);
+				}
+				catch (...) {}
+
+				//失败处理
+				if (bSuccess == false) m_pITCPNetworkEngine->CloseSocket(pAcceptEvent->dwSocketID);
+
+				return true;
+			}
 			case EVENT_TCP_CLIENT_READ:		//读取事件
 			{
 				//效验大小

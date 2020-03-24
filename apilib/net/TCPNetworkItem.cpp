@@ -85,6 +85,31 @@ namespace Net
 			std::bind(&CTCPNetworkItem::ReadHandlerInternal, this->shared_from_this(), std::placeholders::_1, std::placeholders::_2));
 	}
 
+	bool CTCPNetworkItem::SendData(uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize)
+	{
+		//变量定义
+		uint16 wPacketSize = sizeof(TCP_Head) + wDataSize;
+		MessageBuffer buff(wPacketSize);
+		TCP_Head * pHead = (TCP_Head *)buff.GetWritePointer();
+
+		//设置变量
+		pHead->CommandInfo.wSubCmdID = wSubCmdID;
+		pHead->CommandInfo.wMainCmdID = wMainCmdID;
+
+		//附加数据
+		if (wDataSize > 0)
+		{
+			assert(pData != NULL);
+			memcpy(pHead + 1, pData, wDataSize);
+		}
+
+		//加密数据
+		uint16 wEncryptLen = EncryptBuffer(buff.GetWritePointer(), wDataSize, buff.GetBufferSize());
+		buff.WriteCompleted(wEncryptLen);
+		QueuePacket(std::move(buff));
+		return true;
+	}
+
 	void CTCPNetworkItem::QueuePacket(MessageBuffer && buffer)
 	{
 		m_writeQueue.push(std::move(buffer));

@@ -8,6 +8,8 @@
 #include <Windows.h>
 #endif
 
+#include <utf8.h>
+
 namespace Util 
 {
 
@@ -329,6 +331,143 @@ void StringUtility::VUTF8Printf(FILE* out, const char *str, va_list* ap)
 #else
 	vfprintf(out, str, *ap);
 #endif
+}
+
+bool StringUtility::Utf8toWStr(const std::string & utf8str, std::wstring & wstr)
+{
+	wstr.clear();
+	try
+	{
+		utf8::utf8to16(utf8str.c_str(), utf8str.c_str() + utf8str.size(), std::back_inserter(wstr));
+	}
+	catch (std::exception const&)
+	{
+		wstr.clear();
+		return false;
+	}
+
+	return true;
+}
+
+bool StringUtility::IsBasicLatinCharacter(wchar_t wchar)
+{
+	if (wchar >= L'a' && wchar <= L'z')                      // LATIN SMALL LETTER A - LATIN SMALL LETTER Z
+		return true;
+	if (wchar >= L'A' && wchar <= L'Z')                      // LATIN CAPITAL LETTER A - LATIN CAPITAL LETTER Z
+		return true;
+	return false;
+}
+
+wchar_t StringUtility::wcharToUpper(wchar_t wchar)
+{
+	if (wchar >= L'a' && wchar <= L'z')                      // LATIN SMALL LETTER A - LATIN SMALL LETTER Z
+		return wchar_t(uint16(wchar) - 0x0020);
+	if (wchar == 0x00DF)                                     // LATIN SMALL LETTER SHARP S
+		return wchar_t(0x1E9E);
+	if (wchar >= 0x00E0 && wchar <= 0x00F6)                  // LATIN SMALL LETTER A WITH GRAVE - LATIN SMALL LETTER O WITH DIAERESIS
+		return wchar_t(uint16(wchar) - 0x0020);
+	if (wchar >= 0x00F8 && wchar <= 0x00FE)                  // LATIN SMALL LETTER O WITH STROKE - LATIN SMALL LETTER THORN
+		return wchar_t(uint16(wchar) - 0x0020);
+	if (wchar >= 0x0101 && wchar <= 0x012F)                  // LATIN SMALL LETTER A WITH MACRON - LATIN SMALL LETTER I WITH OGONEK (only %2=1)
+	{
+		if (wchar % 2 == 1)
+			return wchar_t(uint16(wchar) - 0x0001);
+	}
+	if (wchar >= 0x0430 && wchar <= 0x044F)                  // CYRILLIC SMALL LETTER A - CYRILLIC SMALL LETTER YA
+		return wchar_t(uint16(wchar) - 0x0020);
+	if (wchar == 0x0451)                                     // CYRILLIC SMALL LETTER IO
+		return wchar_t(0x0401);
+
+	return wchar;
+}
+
+wchar_t StringUtility::wcharToUpperOnlyLatin(wchar_t wchar)
+{
+	return IsBasicLatinCharacter(wchar) ? wcharToUpper(wchar) : wchar;
+}
+
+bool StringUtility::WStrToUtf8(std::wstring const & wstr, std::string & utf8str)
+{
+	try
+	{
+		std::string utf8str2;
+		utf8str2.resize(wstr.size() * 4);                     // allocate for most long case
+
+		if (wstr.size())
+		{
+			char* oend = utf8::utf16to8(wstr.c_str(), wstr.c_str() + wstr.size(), &utf8str2[0]);
+			utf8str2.resize(oend - (&utf8str2[0]));                // remove unused tail
+		}
+		utf8str = utf8str2;
+	}
+	catch (std::exception const&)
+	{
+		utf8str.clear();
+		return false;
+	}
+
+	return true;
+}
+
+bool StringUtility::Utf8ToUpperOnlyLatin(std::string & utf8String)
+{
+	std::wstring wstr;
+	if (!Utf8toWStr(utf8String, wstr))
+		return false;
+
+	std::transform(wstr.begin(), wstr.end(), wstr.begin(), wcharToUpperOnlyLatin);
+
+	return WStrToUtf8(wstr, utf8String);
+}
+
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
+std::wstring StringUtility::StringToWString(const std::string & str)
+{
+	std::wstring wstr;
+	wstr.resize(str.size());
+	OemToCharBuffW(&str[0], &wstr[0], uint32(str.size()));
+	return wstr;
+}
+
+std::string StringUtility::WStringToString(const std::wstring & wstr)
+{
+	std::string str;
+	str.resize(wstr.size());
+	CharToOemBuffW(&wstr[0], &str[0], uint32(wstr.size()));
+	return str;
+}
+#endif
+
+bool StringUtility::ConsoleToUtf8(const std::string & conStr, std::string & utf8str)
+{
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
+	std::wstring wstr = StringToWString(conStr);
+	//wstr.resize(conStr.size());
+	//OemToCharBuffW(&conStr[0], &wstr[0], uint32(conStr.size()));
+
+	return WStrToUtf8(wstr, utf8str);
+#else
+	// not implemented yet
+	conStr = utf8str;
+	return true;
+#endif
+}
+
+bool StringUtility::Utf8ToConsole(const std::string& utf8str, std::string& conStr)
+{
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
+	std::wstring wstr;
+	if (!Utf8toWStr(utf8str, wstr))
+		return false;
+
+	//conStr.resize(wstr.size());
+	//CharToOemBuffW(&wstr[0], &conStr[0], uint32(wstr.size()));
+	conStr = WStringToString(wstr);
+#else
+	// not implemented yet
+	conStr = utf8str;
+#endif
+	return true;
 }
 
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 

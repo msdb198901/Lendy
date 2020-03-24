@@ -20,7 +20,9 @@
 #define SOCKET_TCP_PACKET			(SOCKET_TCP_BUFFER-sizeof(TCP_Head))//网络缓冲
 
 
+#define EVENT_TCP_CLIENT_ACCEPT		0x0007								//应答事件
 #define EVENT_TCP_CLIENT_READ		0x0008								//读取事件
+#define EVENT_TCP_CLIENT_SHUT		0x0009								//关闭事件
 
 namespace Net
 {
@@ -58,6 +60,13 @@ namespace Net
 	//////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////
+	//应答事件
+	struct AS_TCPNetworkAcceptEvent
+	{
+		uint64							dwSocketID;							//网络标识
+		uint64							dwClientAddr;						//连接地址
+	};
+
 	//读取事件
 	struct AS_TCPNetworkReadEvent
 	{
@@ -66,6 +75,12 @@ namespace Net
 		TCP_Command						Command;							//命令信息
 	};
 
+	//关闭事件
+	struct AS_TCPNetworkShutEvent
+	{
+		uint64							dwSocketID;							//网络标识
+		uint64							dwClientAddr;						//连接地址
+	};
 
 	//////////////////////////////////////////////////////////////////////////////////
 //数据定义

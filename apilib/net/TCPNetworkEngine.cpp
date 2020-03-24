@@ -95,9 +95,7 @@ namespace Net
 
 				//发送数据
 				std::lock_guard<std::mutex> _lock(m_mutex);
-				MessageBuffer buff(pSendDataRequest->wDataSize);
-				buff.Write(pSendDataRequest->cbSendBuffer, pSendDataRequest->wDataSize);
-				pTCPNetworkItem->QueuePacket(std::move(buff));
+				pTCPNetworkItem->SendData(pSendDataRequest->wMainCmdID, pSendDataRequest->wSubCmdID, pSendDataRequest->cbSendBuffer, pSendDataRequest->wDataSize);
 				return true;
 			}
 			case ASYNCHRONISM_CLOSE_SOCKET:
@@ -301,12 +299,13 @@ namespace Net
 		//创建对象
 		if (pTCPNetworkItem == nullptr)
 		{
-			pTCPNetworkItem = std::make_shared<CTCPNetworkItem>(m_curIndex++, std::move(_socket), this);
+			pTCPNetworkItem = std::make_shared<CTCPNetworkItem>(m_curIndex, std::move(_socket), this);
 			//pTCPNetworkItem = std::make_shared<CTCPNetworkItem>(m_curIndex++, std::move(_socket), this
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketBind, this, std::placeholders::_1),
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketShut, this, std::placeholders::_1),
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketRead, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
 			m_NetItemStore.insert(std::make_pair(m_curIndex, pTCPNetworkItem.get()));
+			++m_curIndex;
 		}
 		return pTCPNetworkItem;
 	}

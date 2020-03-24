@@ -34,8 +34,8 @@ struct CMD_MB_LogonVisitor
 //登录失败
 struct CMD_MB_LogonFailure
 {
-	uint16							lResultCode;						//错误代码
-	char							szDescribe[LEN_ERROR_DESCRIBE];		//描述消息
+	uint32							lResultCode;						//错误代码
+	wchar_t							szDescribe[LEN_ERROR_DESCRIBE];		//描述消息
 };
 
 #pragma pack()

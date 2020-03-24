@@ -356,7 +356,7 @@ namespace DB
 
 		if (result.empty())
 		{
-			LOG_FATAL("sql.updates", "MySQL 库无法查询, 请检查配置文件 (\"MySQLExecutable\").");
+			LOG_FATAL("sql.updates", "MySQL 库无法查询, 请检查配置文件.");
 		}
 
 		return !result.empty();

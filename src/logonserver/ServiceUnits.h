@@ -56,6 +56,7 @@ namespace Logon
 	private:
 		CAttemperEngineHelper		m_AttemperEngine;					//调度引擎
 		CTCPNetworkEngineHelper		m_TCPNetworkEngine;
+		CTCPSocketServiceHelper		m_TCPSocketService;					//服务通讯
 	};
 }
 

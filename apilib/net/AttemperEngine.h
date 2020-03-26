@@ -7,7 +7,7 @@
 
 namespace Net
 {
-	class CAttemperEngine : public IAttemperEngine, public ITCPNetworkEngineEvent, public IAsynchronismEngineSink
+	class CAttemperEngine : public IAttemperEngine, public ITCPNetworkEngineEvent, public IAsynchronismEngineSink, public ITCPSocketEvent
 	{
 		//函数定义
 public:
@@ -38,6 +38,7 @@ public:
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
 
+		//客户事件
 	public:
 		//应答事件
 		virtual bool OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr);
@@ -45,6 +46,15 @@ public:
 		virtual bool OnEventTCPNetworkShut(uint64 dwSocketID, uint64 dwClientAddr);
 		//读取事件
 		virtual bool OnEventTCPNetworkRead(uint64 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize);
+		
+		//连接事件
+	public:
+		//连接事件
+		virtual bool OnEventTCPSocketLink(uint16 wServiceID, int iErrorCode);
+		//关闭事件
+		virtual bool OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason);
+		//读取事件
+		virtual bool OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize);
 
 		//异步接口
 	public:

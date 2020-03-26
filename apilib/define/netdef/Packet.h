@@ -20,9 +20,17 @@
 #define SOCKET_TCP_PACKET			(SOCKET_TCP_BUFFER-sizeof(TCP_Head))//网络缓冲
 
 
+#define EVENT_CONTROL				0x0002								//控制事件
+
+//网络事件
+#define EVENT_TCP_SOCKET_READ		0x0004								//读取事件
+#define EVENT_TCP_SOCKET_SHUT		0x0005								//关闭事件
+#define EVENT_TCP_SOCKET_LINK		0x0006								//连接事件
+
 #define EVENT_TCP_CLIENT_ACCEPT		0x0007								//应答事件
 #define EVENT_TCP_CLIENT_READ		0x0008								//读取事件
 #define EVENT_TCP_CLIENT_SHUT		0x0009								//关闭事件
+
 
 namespace Net
 {
@@ -60,6 +68,12 @@ namespace Net
 	//////////////////////////////////////////////////////////////////////////////////
 
 	/////////////////////////////////////////////////////////////////////////////
+	//控制事件
+	struct AS_ControlEvent
+	{
+		uint32							wControlID;							//控制标识
+	};
+
 	//应答事件
 	struct AS_TCPNetworkAcceptEvent
 	{
@@ -80,6 +94,13 @@ namespace Net
 	{
 		uint64							dwSocketID;							//网络标识
 		uint64							dwClientAddr;						//连接地址
+	};
+
+	//连接事件
+	struct AS_TCPSocketLinkEvent
+	{
+		int								iErrorCode;							//错误代码
+		uint16							wServiceID;							//服务标识
 	};
 
 	//////////////////////////////////////////////////////////////////////////////////

@@ -27,7 +27,44 @@ namespace Net
 	static GGUID IID_IAttemperEngine = { 0x2b972bac, 0x1c76, 0x4e3c, { 0xb9, 0x19, 0x39, 0x43, 0xf4, 0x31, 0x71, 0x83 } };
 	static GGUID IID_ITCPNetworkEngineEvent = { 0x507976f6, 0xfc24, 0x4c51, { 0xac, 0xd, 0x60, 0x2f, 0x87, 0x71, 0xfc, 0x83 } };
 	static GGUID IID_IAttemperEngineSink = { 0x3620c4d7, 0xfe6, 0x4eee, { 0xad, 0x4f, 0x79, 0xac, 0x23, 0x97, 0xc7, 0x62 } };
-	
+	static GGUID IID_ITCPSocketService = { 0x3fbd00dc, 0x72ba, 0x4686, { 0xa4, 0xa1, 0x1e, 0xd2, 0x10, 0x14, 0xbb, 0xd0 } };
+	static GGUID IID_ITCPSocketEvent = { 0x82c3bfaa, 0xc4c8, 0x40a8, { 0x9e, 0xd7, 0x15, 0xfb, 0x6d, 0xf2, 0x40, 0xbf } };
+
+	//////////////////////////////service/////////////////////////////
+	//网络接口
+	struct ITCPSocketService : public IServiceModule
+	{
+		//配置接口
+	public:
+		//配置函数
+		virtual bool SetServiceID(uint16 wServiceID) = 0;
+		//设置接口
+		virtual bool SetTCPSocketEvent(IUnknownEx * pIUnknownEx) = 0;
+
+		//功能接口
+	public:
+		//关闭连接
+		virtual bool CloseSocket() = 0;
+		//连接地址
+		virtual bool Connect(uint64 dwServerIP, uint16 wPort) = 0;
+		//连接地址
+		virtual bool Connect(std::string strServerIP, uint16 wPort) = 0;
+		//发送函数
+		virtual bool SendData(uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0) = 0;
+	};
+
+	//网络事件
+	struct ITCPSocketEvent : public IUnknownEx
+	{
+		//连接事件
+		virtual bool OnEventTCPSocketLink(uint16 wServiceID, int nErrorCode) = 0;
+		//关闭事件
+		virtual bool OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason) = 0;
+		//读取事件
+		virtual bool OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize) = 0;
+	};
+
+	//////////////////////////////client/////////////////////////////
 	//异步引擎
 	struct IAsynchronismEngine : public IServiceModule
 	{
@@ -77,7 +114,7 @@ namespace Net
 
 	public:
 		//发送函数
-		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize) = 0;
+		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0) = 0;
 	
 		//控制接口
 	public:
@@ -113,6 +150,15 @@ namespace Net
 		//控制事件
 		virtual bool OnEventControl(uint16 wIdentifier, void * pData, uint16 wDataSize) = 0;
 
+		//连接事件
+	public:
+		//连接事件
+		virtual bool OnEventTCPSocketLink(uint16 wServiceID, int iErrorCode) = 0;
+		//关闭事件
+		virtual bool OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason) = 0;
+		//读取事件
+		virtual bool OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize) = 0;
+
 		//网络事件
 	public:
 		//应答事件
@@ -125,6 +171,7 @@ namespace Net
 
 	DECLARE_MOUDLE_HELPER(AttemperEngine, NETWORK_ENGINE_DLL_NAME, "CreateAttemperEngine")
 	DECLARE_MOUDLE_HELPER(TCPNetworkEngine, NETWORK_ENGINE_DLL_NAME, "CreateTCPNetworkEngine")
+	DECLARE_MOUDLE_HELPER(TCPSocketService, NETWORK_ENGINE_DLL_NAME, "CreateTCPSocketService")
 }
 
 #endif

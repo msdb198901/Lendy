@@ -69,7 +69,7 @@ namespace Net
 		{
 			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wIdentifier, pData, wDataSize]() { m_pIAsynchronismEngineSink->OnAsynchronismEngineData(wIdentifier, pData, wDataSize);}));
 		}
-		return false;
+		return true;
 	}
 
 	void CAsynchronismEngine::Run()

@@ -69,6 +69,7 @@ namespace Net
 		QUERY_INTERFACE(IAttemperEngine, uuid);
 		QUERY_INTERFACE(ITCPNetworkEngineEvent, uuid);
 		QUERY_INTERFACE(IAsynchronismEngineSink, uuid);
+		QUERY_INTERFACE(ITCPSocketEvent, uuid);
 		QUERY_INTERFACE_IUNKNOWNEX(IAttemperEngine, uuid);
 		return nullptr;
 	}
@@ -107,11 +108,22 @@ namespace Net
 
 	bool CAttemperEngine::OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize)
 	{
-		//if (m_ioContext)
-		//{
-		//	Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wControlID, pData, wDataSize]() {m_pIAttemperEngineSink->OnEventControl(wControlID, pData, wDataSize); }));
-		//}
-		return true;
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_ControlEvent * pControlEvent = (AS_ControlEvent *)m_cbBuffer;
+
+		//构造数据
+		pControlEvent->wControlID  = wControlID;
+
+		//附加数据
+		if (wDataSize > 0)
+		{
+			assert(pData != NULL);
+			memcpy(m_cbBuffer + sizeof(AS_ControlEvent), pData, wDataSize);
+		}
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_CONTROL, m_cbBuffer, sizeof(AS_ControlEvent));
 	}
 
 	bool CAttemperEngine::OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr)
@@ -164,6 +176,30 @@ namespace Net
 		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_READ, m_cbBuffer, sizeof(AS_TCPNetworkReadEvent) + wDataSize); 
 	}
 
+	bool CAttemperEngine::OnEventTCPSocketLink(uint16 wServiceID, int iErrorCode)
+	{
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_TCPSocketLinkEvent * pConnectEvent = (AS_TCPSocketLinkEvent *)m_cbBuffer;
+
+		//构造数据
+		pConnectEvent->wServiceID = wServiceID;
+		pConnectEvent->iErrorCode = iErrorCode;
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_SOCKET_LINK, m_cbBuffer, sizeof(AS_TCPSocketLinkEvent));
+	}
+
+	bool CAttemperEngine::OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason)
+	{
+		return false;
+	}
+
+	bool CAttemperEngine::OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize)
+	{
+		return false;
+	}
+
 	bool CAttemperEngine::OnAsynchronismEngineStart()
 	{
 		//效验参数
@@ -203,6 +239,17 @@ namespace Net
 		//内核事件
 		switch (wIdentifier)
 		{
+			case EVENT_CONTROL:
+			{
+				//大小断言
+				assert(wDataSize >= sizeof(AS_ControlEvent));
+				if (wDataSize < sizeof(AS_ControlEvent)) return false;
+
+				//处理消息
+				AS_ControlEvent * pControlEvent = (AS_ControlEvent *)pData;
+				m_pIAttemperEngineSink->OnEventControl(pControlEvent->wControlID, pControlEvent + 1, wDataSize - sizeof(AS_ControlEvent));
+				return true;
+			}
 			case EVENT_TCP_CLIENT_ACCEPT:
 			{
 				//大小断言
@@ -254,6 +301,18 @@ namespace Net
 				//失败处理
 				if (!bSuccess) m_pITCPNetworkEngine->CloseSocket(pReadEvent->dwSocketID);
 				
+				return true;
+			}
+			case EVENT_TCP_SOCKET_LINK:
+			{
+				//大小断言
+				assert(wDataSize == sizeof(AS_TCPSocketLinkEvent));
+				if (wDataSize != sizeof(AS_TCPSocketLinkEvent)) return false;
+
+				//处理消息
+				AS_TCPSocketLinkEvent * pConnectEvent = (AS_TCPSocketLinkEvent *)pData;
+				m_pIAttemperEngineSink->OnEventTCPSocketLink(pConnectEvent->wServiceID, pConnectEvent->iErrorCode);
+
 				return true;
 			}
 		}

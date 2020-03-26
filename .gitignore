@@ -10768,3 +10768,12 @@ Build/apilib/dep/utf8cpp/cmake_install.cmake
 Build/apilib/dep/utf8cpp/CMakeFiles/generate.stamp
 Build/apilib/dep/utf8cpp/CMakeFiles/generate.stamp.depend
 Build/apilib/util/Util.dir/Debug/Util.tlog/link.27260.delete.1.tlog
+Build/.vs/lendy/v15/ipch/AutoPCH/3fcec341ac1c11b9/TCPSOCKETSERVICE.ipch
+Build/apilib/dep/fmt/fmt.dir/Debug/fmt.Build.CppClean.log
+Build/apilib/log/Log.dir/Debug/Log.Build.CppClean.log
+Build/apilib/net/Net.dir/Debug/Net.Build.CppClean.log
+Build/apilib/net/Net.dir/Debug/TCPSocketService.obj
+Build/apilib/net/Net.vcxproj.user
+Build/apilib/util/Util.dir/Debug/Util.Build.CppClean.log
+Build/src/logonserver/LogonServer.dir/Debug/LogonServer.Build.CppClean.log
+Build/x64/Debug/ZERO_CHECK/ZERO_CHECK.Build.CppClean.log

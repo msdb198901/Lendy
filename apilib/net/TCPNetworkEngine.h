@@ -54,7 +54,7 @@ namespace Net
 
 	public:
 		//发送函数
-		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize);
+		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0);
 
 		//控制接口
 	public:

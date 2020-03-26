@@ -53,6 +53,11 @@ namespace Logon
 		{
 			m_TCPNetworkEngine->Stop();
 		}
+
+		if (m_TCPSocketService.GetDLLInterface())
+		{
+			m_TCPSocketService->Stop();
+		}
 		return true;
 	}
 	bool ServiceUnits::InitializeService()
@@ -63,6 +68,11 @@ namespace Logon
 		}
 
 		if ((m_TCPNetworkEngine.GetDLLInterface() == nullptr) && (!m_TCPNetworkEngine.CreateInstance()))
+		{
+			return false;
+		}
+
+		if ((m_TCPSocketService.GetDLLInterface() == nullptr) && (!m_TCPSocketService.CreateInstance()))
 		{
 			return false;
 		}
@@ -77,7 +87,11 @@ namespace Logon
 		if (m_AttemperEngine->SetNetworkEngine(pITCPNetworkEngine) == false) return false;
 		if (m_AttemperEngine->SetAttemperEngineSink(pIAttemperEngineSink)==false) return false;
 
+		if (m_TCPSocketService->SetServiceID(NETWORK_CORRESPOND) == false) return false;
+		if (m_TCPSocketService->SetTCPSocketEvent(pIAttemperEngine) == false) return false;
+
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
+		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 
 		if (!m_TCPNetworkEngine->SetServiceParameter("192.168.1.217", 8600, 4))
 		{
@@ -93,6 +107,11 @@ namespace Logon
 			return false;
 		}
 		if (!m_TCPNetworkEngine->Start(ioContext))
+		{
+			return false;
+		}
+
+		if (!m_TCPSocketService->Start(ioContext))
 		{
 			return false;
 		}

@@ -41,6 +41,15 @@ namespace Logon
 		//停止事件
 		virtual bool OnAttemperEngineConclude(IUnknownEx * pIUnknownEx);
 
+		//连接事件
+	public:
+		//连接事件
+		virtual bool OnEventTCPSocketLink(uint16 wServiceID, int iErrorCode);
+		//关闭事件
+		virtual bool OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason);
+		//读取事件
+		virtual bool OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize);
+
 		//网络事件
 	public:
 		//应答事件
@@ -74,6 +83,7 @@ namespace Logon
 		//组件接口
 	protected:
 		ITCPNetworkEngine *				m_pITCPNetworkEngine;				//网络引擎
+		ITCPSocketService *				m_pITCPSocketService;
 	};
 }
 

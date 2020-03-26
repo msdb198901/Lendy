@@ -11,6 +11,8 @@ namespace Logon
 
 namespace Logon
 {
+#define NETWORK_CORRESPOND			1									//µÇÂ¼Á¬½Ó
+
 	enum ServiceUnitsControl
 	{
 		SUC_CONNECT_CORRESPOND  = 1,

@@ -1,5 +1,6 @@
 #include "AttemperEngineSink.h"
 #include "CMD_LogonServer.h"
+#include "CMD_Correspond.h"
 #include "Implementation/LogonDatabase.h"
 #include "Log.h"
 #include "StringUtility.h"
@@ -45,6 +46,54 @@ namespace Logon
 
 	bool CAttemperEngineSink::OnAttemperEngineConclude(IUnknownEx * pIUnknownEx)
 	{
+		m_pITCPSocketService = nullptr;
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnEventTCPSocketLink(uint16 wServiceID, int iErrorCode)
+	{
+		//协调连接
+		if (wServiceID == NETWORK_CORRESPOND)
+		{
+			//错误判断
+			if (iErrorCode != 0)
+			{
+				LOG_INFO("server.logon", "协调服务器连接失败 [ %ld ]，%ld 秒后将重新连接", iErrorCode, 5);
+				return false;
+			}
+
+			//提示消息
+			LOG_INFO("server.logon", "正在注册游戏登录服务器...");
+
+			//变量定义
+			CMD_CS_C_RegisterPlaza RegisterPlaza;
+			memset(&RegisterPlaza, 0, sizeof(RegisterPlaza));
+
+			//设置变量
+			std::string t = "登录服务器";
+			std::wstring wstrLogon = Util::StringUtility::StringToWString(t);
+			swprintf_s(RegisterPlaza.szServerName, L"%s", wstrLogon.c_str());
+
+			std::string t1 = "192.168.1.217";
+			std::wstring wstrIP = Util::StringUtility::StringToWString(t1);
+			swprintf_s(RegisterPlaza.szServerAddr, L"%s", wstrIP.c_str());
+
+			//发送数据
+			m_pITCPSocketService->SendData(MDM_CS_REGISTER, SUB_CS_C_REGISTER_PLAZA, &RegisterPlaza, sizeof(RegisterPlaza));
+
+			return true;
+		}
+
+		return true;
+	}
+
+	bool CAttemperEngineSink::OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason)
+	{
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize)
+	{
 		return false;
 	}
 
@@ -86,6 +135,10 @@ namespace Logon
 		{
 			case SUC_LOAD_DB_GAME_LIST:
 			{
+				//发起连接
+				std::string str = "192.168.1.217";
+				m_pITCPSocketService->Connect(str, 8610);
+
 				return true;
 			}
 		}

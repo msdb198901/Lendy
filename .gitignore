@@ -10777,3 +10777,8 @@ Build/apilib/net/Net.vcxproj.user
 Build/apilib/util/Util.dir/Debug/Util.Build.CppClean.log
 Build/src/logonserver/LogonServer.dir/Debug/LogonServer.Build.CppClean.log
 Build/x64/Debug/ZERO_CHECK/ZERO_CHECK.Build.CppClean.log
+Build/.vs/lendy/v15/ipch/AutoPCH/5205297318aa18b3/FORMAT.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/fc3ab4efd5210794/DATAQUEUE.ipch
+Build/apilib/util/Util.dir/Debug/Util.tlog/link.17200.delete.1.tlog
+Build/apilib/util/Util.dir/Debug/DataQueue.obj
+Build/apilib/net/Net.dir/Debug/Net.tlog/link.21508.delete.1.tlog

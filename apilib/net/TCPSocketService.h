@@ -3,6 +3,7 @@
 
 #include "../KernelEngineHead.h"
 #include "Strand.h"
+#include "DataQueue.h"
 #include <thread>
 #include <mutex>
 
@@ -49,6 +50,13 @@ namespace Net
 
 		//辅助函数
 	private:
+		//网络读取
+		bool OnSocketNotifyRead();
+		//网络发送
+		bool OnSocketNotifyWrite();
+
+		//辅助函数
+	private:
 		//发送数据
 		uint64 SendBuffer(void * pBuffer, uint16 wSendSize);
 		//解密数据
@@ -65,9 +73,17 @@ namespace Net
 		//内核变量
 	protected:
 		SOCKET								m_hSocket;							//连接句柄
-		SOCKET								m_hMinSocket;						//连接句柄
-		SOCKET								m_hMaxSocket;						//连接句柄
 		timeval								m_tTimeOut;
+
+		//内部綫程
+	private:
+		std::mutex							m_mutex;
+		Util::DataQueue						m_dataQueue;
+
+		//接收变量
+	protected:
+		uint16								m_wRecvSize;						//接收长度
+		uint8								m_cbRecvBuf[SOCKET_TCP_BUFFER * 10];//接收缓冲
 
 	protected:
 		Net::IOContext 						m_ioContext;
@@ -88,8 +104,8 @@ namespace Net
 
 		//辅助变量
 	protected:
-		std::mutex						m_mutex;
-		uint8							m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
+		std::mutex							m_mutex;
+		uint8								m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
 
 		//组件变量
 	protected:
@@ -139,6 +155,8 @@ namespace Net
 	protected:
 		//连接消息
 		bool OnSocketLink(int nErrorCode);
+		//连接消息
+		bool OnSocketRead(TCP_Command Command, void * pData, uint16 wDataSize);
 	};
 }
 

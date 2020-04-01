@@ -15,6 +15,7 @@ int main(int argc, char** argv)
 
 	SrvUnitsMgr->Start(ioContext.get());
 
+	asio::io_context::work work(*ioContext);
 	ioContext->run();
 
 	return 0;

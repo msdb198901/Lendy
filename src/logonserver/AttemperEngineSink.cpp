@@ -1,4 +1,5 @@
 #include "AttemperEngineSink.h"
+#include "ServiceUnits.h"
 #include "CMD_LogonServer.h"
 #include "CMD_Correspond.h"
 #include "Implementation/LogonDatabase.h"
@@ -94,6 +95,21 @@ namespace Logon
 
 	bool CAttemperEngineSink::OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize)
 	{
+		//协调连接
+		if (wServiceID == NETWORK_CORRESPOND)
+		{
+			switch (Command.wMainCmdID)
+			{
+				case MDM_CS_REGISTER:		//注册服务
+				{
+					return OnTCPSocketMainRegister(Command.wSubCmdID, pData, wDataSize);
+				}
+				case MDM_CS_SERVICE_INFO:	//服务信息
+				{
+					return OnTCPSocketMainServiceInfo(Command.wSubCmdID, pData, wDataSize);
+				}
+			}
+		}
 		return false;
 	}
 
@@ -135,15 +151,89 @@ namespace Logon
 		{
 			case SUC_LOAD_DB_GAME_LIST:
 			{
+				//事件通知
+				ControlResult ControlResult;
+				ControlResult.cbSuccess = 1;
+				SrvUnitsMgr->PostControlRequest(UDC_LOAD_DB_LIST_RESULT, &ControlResult, sizeof(ControlResult));
+				return true;
+			}
+			case SUC_CONNECT_CORRESPOND:
+			{
 				//发起连接
 				std::string str = "192.168.1.217";
 				m_pITCPSocketService->Connect(str, 8610);
-
 				return true;
 			}
 		}
 		return false;
 	}
+
+	bool CAttemperEngineSink::OnTCPSocketMainRegister(uint16 wSubCmdID, void * pData, uint16 wDataSize)
+	{
+		switch (wSubCmdID)
+		{
+			case SUB_CS_S_REGISTER_FAILURE:		//注册失败
+			{
+				//变量定义
+				CMD_CS_S_RegisterFailure * pRegisterFailure = (CMD_CS_S_RegisterFailure *)pData;
+
+				//效验参数
+				assert(wDataSize >= (sizeof(CMD_CS_S_RegisterFailure) - sizeof(pRegisterFailure->szDescribeString)));
+				if (wDataSize < (sizeof(CMD_CS_S_RegisterFailure) - sizeof(pRegisterFailure->szDescribeString))) return false;
+
+				//关闭处理
+				//m_bNeekCorrespond = false;
+				m_pITCPSocketService->CloseSocket();
+
+				//显示消息
+				std::string strResult = Util::StringUtility::WStringToString(pRegisterFailure->szDescribeString);
+
+				LOG_INFO("server.logon", "%d", strResult.c_str());
+
+				//事件通知
+				//CP_ControlResult ControlResult;
+				//ControlResult.cbSuccess = ER_FAILURE;
+				//SendUIControlPacket(UI_CORRESPOND_RESULT, &ControlResult, sizeof(ControlResult));
+				return true;
+			}
+		}
+
+		return true;
+	}
+
+	bool CAttemperEngineSink::OnTCPSocketMainServiceInfo(uint16 wSubCmdID, void * pData, uint16 wDataSize)
+	{
+		switch (wSubCmdID)
+		{
+			case SUB_CS_S_SERVER_INFO:		//房间信息
+			{
+				return true;
+			}
+			case SUB_CS_S_SERVER_ONLINE:	//房间人数
+			{
+				//效验参数
+				assert(wDataSize == sizeof(CMD_CS_S_ServerOnLine));
+				if (wDataSize != sizeof(CMD_CS_S_ServerOnLine)) return false;
+
+				//变量定义
+				CMD_CS_S_ServerOnLine * pServerOnLine = (CMD_CS_S_ServerOnLine *)pData;
+
+				pServerOnLine->dwAndroidCount;
+
+				return true;
+			}
+			case SUB_CS_S_SERVER_FINISH:	//房间完成
+			{
+				//事件处理
+				ControlResult ControlResult;
+				ControlResult.cbSuccess = 1;
+				SrvUnitsMgr->PostControlRequest(UDC_CORRESPOND_RESULT, &ControlResult, sizeof(ControlResult));
+				return true;
+			}
+		}
+		return false;
+	}
+
 	bool CAttemperEngineSink::OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint64 dwSocketID)
 	{
 		switch (wSubCmdID)

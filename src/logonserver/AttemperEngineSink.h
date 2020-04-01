@@ -63,6 +63,13 @@ namespace Logon
 	public:
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
+		
+		//连接处理
+	protected:
+		//注册事件
+		bool OnTCPSocketMainRegister(uint16 wSubCmdID, void * pData, uint16 wDataSize);
+		//列表事件
+		bool OnTCPSocketMainServiceInfo(uint16 wSubCmdID, void * pData, uint16 wDataSize);
 
 		//手机事件
 	protected:

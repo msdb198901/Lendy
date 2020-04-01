@@ -1,5 +1,6 @@
 #include "AsynchronismEngine.h"
 
+#include "ProducerConsumerQueue.h"
 
 namespace Net
 {
@@ -67,7 +68,19 @@ namespace Net
 	{
 		if (m_ioContext)
 		{
-			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wIdentifier, pData, wDataSize]() { m_pIAsynchronismEngineSink->OnAsynchronismEngineData(wIdentifier, pData, wDataSize);}));
+			{
+				std::lock_guard<std::mutex>	 _lock(m_mutex);
+				m_dataQueue.InsertData(wIdentifier, pData, wDataSize);
+			}
+
+			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wIdentifier, pData, wDataSize]() 
+			{
+				//提取数据
+				std::lock_guard<std::mutex>	 _lock(m_mutex);
+				Util::tagDataHead DataHead;
+				m_dataQueue.DistillData(DataHead, m_cbBuffer, sizeof(m_cbBuffer));
+				m_pIAsynchronismEngineSink->OnAsynchronismEngineData(DataHead.wIdentifier, m_cbBuffer, DataHead.wDataSize);
+			}));
 		}
 		return true;
 	}

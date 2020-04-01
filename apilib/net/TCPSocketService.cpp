@@ -51,8 +51,10 @@ namespace Net
 		m_ioContext(2),
 		m_pStrand(new Net::Strand(m_ioContext)),
 		m_pThread(nullptr),
-		m_pThreadSelect(nullptr)
+		m_pThreadSelect(nullptr),
+		m_wRecvSize(0)
 	{
+		memset(m_cbRecvBuf, 0, sizeof(m_cbRecvBuf));
 	}
 
 	CTCPSocketServiceThread::~CTCPSocketServiceThread()
@@ -89,6 +91,11 @@ namespace Net
 
 	bool CTCPSocketServiceThread::PostThreadRequest(uint16 wIdentifier, void * const pBuffer, uint16 wDataSize)
 	{
+		{
+			std::lock_guard<std::mutex> _lock(m_mutex);
+			m_dataQueue.InsertData(wIdentifier, pBuffer, wDataSize);
+		}
+
 		Net::post(m_ioContext, Net::bind_executor(*m_pStrand, [this, wIdentifier, pBuffer, wDataSize]() { 
 			OnServiceRequest(wIdentifier, pBuffer, wDataSize);
 		}));
@@ -97,35 +104,43 @@ namespace Net
 
 	bool Net::CTCPSocketServiceThread::OnServiceRequest(uint16 wIdentifier, void * const pBuffer, uint16 wDataSize)
 	{
+		Util::tagDataHead DataHead;
+		std::lock_guard<std::mutex> _lock(m_mutex);
+
+		//提取数据
+		uint8 cbBuffer[SOCKET_TCP_BUFFER] = {};
+		if (m_dataQueue.DistillData(DataHead, cbBuffer, sizeof(cbBuffer)) == false) return 0;
+
 		//数据处理
-		switch (wIdentifier)
+		switch (DataHead.wIdentifier)
 		{
 			case REQUEST_CONNECT:		//连接请求
 			{
 				//效验数据
-				assert(wDataSize == sizeof(tagConnectRequest));
-				tagConnectRequest * pConnectRequest = (tagConnectRequest *)pBuffer;
+				assert(DataHead.wDataSize == sizeof(tagConnectRequest));
+				tagConnectRequest * pConnectRequest = (tagConnectRequest *)cbBuffer;
 
 				//事件通知
 				uint64 uConnect = PerformConnect(pConnectRequest->dwServerIP, pConnectRequest->wPort);
-//				int iErrorCode;
-//#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
-//				iErrorCode = WSAGetLastError();
-//#else
-//				iErrorCode = errno;
-//#endif
-//				CTCPSocketService * pTCPSocketStatusService = CONTAINING_RECORD(this, CTCPSocketService, m_TCPSocketServiceThread);
-//				pTCPSocketStatusService->OnSocketLink(uConnect == CONNECT_SUCCESS ? 0 : iErrorCode);
+				int iErrorCode;
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+				iErrorCode = WSAGetLastError();
+#else
+				iErrorCode = errno;
+#endif
+				CTCPSocketService * pTCPSocketStatusService = CONTAINING_RECORD(this, CTCPSocketService, m_TCPSocketServiceThread);
+				pTCPSocketStatusService->OnSocketLink(uConnect == CONNECT_SUCCESS ? 0 : iErrorCode);
 				return true;
 			}
 			case REQUEST_SEND_DATA:
 			{
 				//效验数据
-				assert(wDataSize == sizeof(tagSendDataRequest));
-				tagSendDataRequest * pSendDataRequest = (tagSendDataRequest *)pBuffer;
+				tagSendDataRequest * pSendDataRequest = (tagSendDataRequest *)cbBuffer;
+				assert(DataHead.wDataSize >= (sizeof(tagSendDataRequest) - sizeof(pSendDataRequest->cbSendBuffer)));
+				assert(DataHead.wDataSize == (pSendDataRequest->wDataSize + sizeof(tagSendDataRequest) - sizeof(pSendDataRequest->cbSendBuffer)));
 
 				//数据处理
-				PerformSendData(pSendDataRequest->wMainCmdID, pSendDataRequest->wSubCmdID);
+				PerformSendData(pSendDataRequest->wMainCmdID, pSendDataRequest->wSubCmdID, pSendDataRequest->cbSendBuffer, pSendDataRequest->wDataSize);
 				return true;
 			}
 			case REQUEST_CLOSE_SOCKET:
@@ -156,8 +171,7 @@ namespace Net
 			//设置变量
 			socketAddr.sin_family = AF_INET;
 			socketAddr.sin_port = htons(wPort);
-			socketAddr.sin_addr.S_un.S_addr = dwServerIP;
-			//socketAddr.sin_addr.s_addr = dwServerIP;
+			socketAddr.sin_addr.s_addr = dwServerIP;
 
 			int nErrorCode = connect(m_hSocket, (const struct sockaddr *)&socketAddr, sizeof(socketAddr));
 			if (nErrorCode == SOCKET_ERROR)
@@ -215,37 +229,154 @@ namespace Net
 		m_hSocket = ::socket(af, type, protocol);
 		if (m_hSocket == INVALID_SOCKET) return false;
 
-		int iResult = 0;
-		int iShutdwonResult = 0;
-#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
-		unsigned long off;
-		iResult = ioctlsocket(m_hSocket, FIONBIO, &off);
-#else
-		int flags = fcntl(m_hSocket, F_GETFL);
-		iResult = fcntl(m_hSocket, F_SETFL, flags | O_NONBLOCK);
-#endif
-		if (iResult == SOCKET_ERROR)
-		{
-			if (m_hSocket != INVALID_SOCKET)
-			{
-				iShutdwonResult = shutdown(m_hSocket, SHUT_RDWR);
-			}
-			return false;
-		}
-
-		m_hMinSocket = m_hMaxSocket = m_hSocket;
-
+//		int iResult = 0;
+//		int iShutdwonResult = 0;
+//#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+//		unsigned long off;
+//		iResult = ioctlsocket(m_hSocket, FIONBIO, &off);
+//#else
+//		int flags = fcntl(m_hSocket, F_GETFL);
+//		iResult = fcntl(m_hSocket, F_SETFL, flags | O_NONBLOCK);
+//#endif
+//		if (iResult == SOCKET_ERROR)
+//		{
+//			if (m_hSocket != INVALID_SOCKET)
+//			{
+//				iShutdwonResult = shutdown(m_hSocket, SHUT_RDWR);
+//			}
+//			return false;
+//		}
 		return true;
+	}
+
+	bool Net::CTCPSocketServiceThread::OnSocketNotifyRead()
+	{
+		try
+		{
+			int iRetCode = recv(m_hSocket, (char*)m_cbRecvBuf + m_wRecvSize, sizeof(m_cbRecvBuf) - m_wRecvSize, 0);
+			if (iRetCode == SOCKET_ERROR) throw "网络连接关闭，读取数据失败";
+
+			m_wRecvSize += iRetCode;
+
+			uint16 wPacketSize = 0;
+			uint8 cbDataBuffer[SOCKET_TCP_PACKET + sizeof(TCP_Head)];
+
+			TCP_Head *pHead = (TCP_Head*)m_cbRecvBuf;
+
+			while (m_wRecvSize >= sizeof(TCP_Head))
+			{
+				wPacketSize = pHead->TCPInfo.wPacketSize;
+				assert(pHead->TCPInfo.cbDataKind == DK_MAPPED);
+				assert(wPacketSize <= (SOCKET_TCP_PACKET + sizeof(TCP_Head)));
+
+				if (pHead->TCPInfo.cbDataKind != DK_MAPPED) throw "数据包版本错误";
+				if (wPacketSize > (SOCKET_TCP_PACKET + sizeof(TCP_Head))) throw "数据包太大";
+				if (m_wRecvSize < wPacketSize) return false;
+
+				memcpy(cbDataBuffer, m_cbRecvBuf, wPacketSize);
+				m_wRecvSize -= wPacketSize;
+				memmove(m_cbRecvBuf, m_cbRecvBuf + wPacketSize, m_wRecvSize);
+
+				//解密数据
+				uint16 wRealySize = CrevasseBuffer(cbDataBuffer, wPacketSize);
+				assert(wRealySize >= sizeof(TCP_Head));
+
+				//解释数据
+				uint16 wDataSize = wRealySize - sizeof(TCP_Head);
+				void * pDataBuffer = cbDataBuffer + sizeof(TCP_Head);
+				TCP_Command Command = ((TCP_Head *)cbDataBuffer)->CommandInfo;
+
+				//内核数据
+				if (Command.wMainCmdID == MDM_KN_COMMAND)
+				{
+					switch (Command.wSubCmdID)
+					{
+						case SUB_KN_DETECT_SOCKET:		//网络检测
+						{
+							//回应数据
+							PerformSendData(MDM_KN_COMMAND, SUB_KN_DETECT_SOCKET);
+
+							break;
+						}
+					}
+				}
+				else
+				{
+					//处理数据
+					CTCPSocketService * pTCPSocketStatusService = CONTAINING_RECORD(this, CTCPSocketService, m_TCPSocketServiceThread);
+					if (pTCPSocketStatusService->OnSocketRead(Command, pDataBuffer, wDataSize) == false) throw TEXT("网络数据包处理失败");
+				}
+			}
+
+		}
+		catch (...)
+		{
+			//关闭连接
+			//PerformCloseSocket(true);
+		}
+		return true;
+	}
+
+	bool Net::CTCPSocketServiceThread::OnSocketNotifyWrite()
+	{
+		return false;
 	}
 
 	uint64 Net::CTCPSocketServiceThread::SendBuffer(void * pBuffer, uint16 wSendSize)
 	{
-		return uint64();
+		//变量定义
+		uint16 wTotalCount = 0;
+
+		//发送数据
+		while (wTotalCount < wSendSize)
+		{
+			//发生数据
+			int nSendCount = send(m_hSocket, (char *)pBuffer + wTotalCount, wSendSize - wTotalCount, 0);
+
+			//错误判断
+			if (nSendCount == SOCKET_ERROR)
+			{
+				////缓冲判断
+				//if (WSAGetLastError() == WSAEWOULDBLOCK)
+				//{
+				//	AmortizeBuffer((LPBYTE)pBuffer + wTotalCount, wSendSize - wTotalCount);
+				//	return wSendSize;
+				//}
+				////关闭连接
+				//PerformCloseSocket(SHUT_REASON_EXCEPTION);
+
+				return 0L;
+			}
+			else
+			{
+				//设置变量
+				wTotalCount += nSendCount;
+			}
+		}
+
+		////缓冲数据
+		//if (wTotalCount > wSendSize)
+		//{
+		//	AmortizeBuffer((LPBYTE)pBuffer + wTotalCount, wSendSize - wTotalCount);
+		//}
+
+		return wSendSize;
 	}
 
 	uint16 Net::CTCPSocketServiceThread::CrevasseBuffer(uint8 cbDataBuffer[], uint16 wDataSize)
 	{
-		return uint16();
+		//效验参数
+		assert(wDataSize >= sizeof(TCP_Head));
+		assert(((TCP_Head *)cbDataBuffer)->TCPInfo.wPacketSize == wDataSize);
+
+		//效验码与字节映射
+		TCP_Head * pHead = (TCP_Head *)cbDataBuffer;
+		for (int i = sizeof(TCP_Info); i < wDataSize; i++)
+		{
+			cbDataBuffer[i] = g_RecvByteMap[cbDataBuffer[i]];
+		}
+
+		return wDataSize;
 	}
 
 	uint16 Net::CTCPSocketServiceThread::EncryptBuffer(uint8 cbDataBuffer[], uint16 wDataSize, uint16 wBufferSize)
@@ -310,9 +441,15 @@ namespace Net
 #else
 				usleep(100 * 1000);
 #endif
-				int result = select(m_hMaxSocket + 1, &readset, &writeset, &exceptset, &m_tTimeOut);
+				readset = o_readset;
+				writeset = o_writeset;
+				exceptset = o_exceptset;
+
+				int result = select(m_hSocket + 1, &readset, &writeset, &exceptset, &m_tTimeOut);
 				if (result == SOCKET_ERROR)
 				{
+					int i = WSAGetLastError();
+					assert(nullptr);
 					break;
 				}
 
@@ -321,22 +458,25 @@ namespace Net
 				//可读
 				if (FD_ISSET(m_hSocket, &readset))
 				{
-
+					OnSocketNotifyRead();
 				}
 				else if (FD_ISSET(m_hSocket, &writeset))
 				{
+					OnSocketNotifyWrite();
+				}
+				else if (FD_ISSET(m_hSocket, &exceptset))
+				{
 					printf("11111111\n");
 					int error = 0;
-					socklen_t len = sizeof(error);
-					if (getsockopt(m_hSocket, SOL_SOCKET, SO_ERROR, (char*)&error, &len) < 0)
+					socklen_t len = 128;
+					char sz[128] = {};
+					if (getsockopt(m_hSocket, SOL_SOCKET, SO_ERROR, sz, &len) < 0)
 					{
 						break;
 					}
+					int i = 0;
+					++i;
 				}
-
-				readset = o_readset;
-				writeset = o_writeset;
-				exceptset = o_exceptset;
 			}
 		}
 		catch (...)
@@ -384,14 +524,14 @@ namespace Net
 
 	bool CTCPSocketService::SetServiceID(uint16 wServiceID)
 	{
-		IS_SS_RUN
+		IS_SS_STOP
 		m_wServiceID = wServiceID;
 		return true;
 	}
 
 	bool CTCPSocketService::SetTCPSocketEvent(IUnknownEx * pIUnknownEx)
 	{
-		IS_SS_RUN
+		IS_SS_STOP
 		m_pITCPSocketEvent = QUERY_OBJECT_PTR_INTERFACE(pIUnknownEx, ITCPSocketEvent);
 
 		//错误判断
@@ -464,6 +604,14 @@ namespace Net
 		//投递事件
 		assert(m_pITCPSocketEvent != NULL);
 		return m_pITCPSocketEvent->OnEventTCPSocketLink(m_wServiceID, nErrorCode);
+	}
+
+	//读取消息
+	bool CTCPSocketService::OnSocketRead(TCP_Command Command, void * pData, uint16 wDataSize)
+	{
+		//投递事件
+		assert(m_pITCPSocketEvent != NULL);
+		return m_pITCPSocketEvent->OnEventTCPSocketRead(m_wServiceID, Command, pData, wDataSize);
 	}
 
 	//组件创建函数

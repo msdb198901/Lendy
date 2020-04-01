@@ -118,7 +118,7 @@ namespace Net
 		//附加数据
 		if (wDataSize > 0)
 		{
-			assert(pData != NULL);
+			assert(pData != nullptr);
 			memcpy(m_cbBuffer + sizeof(AS_ControlEvent), pData, wDataSize);
 		}
 
@@ -169,7 +169,7 @@ namespace Net
 		//附加数据
 		if (wDataSize > 0)
 		{
-			assert(pData != NULL);
+			assert(pData != nullptr);
 			memcpy(m_cbBuffer + sizeof(AS_TCPNetworkReadEvent), pData, wDataSize);
 		}
 
@@ -197,7 +197,24 @@ namespace Net
 
 	bool CAttemperEngine::OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize)
 	{
-		return false;
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_TCPSocketReadEvent * pReadEvent = (AS_TCPSocketReadEvent *)m_cbBuffer;
+
+		//构造数据
+		pReadEvent->Command = Command;
+		pReadEvent->wDataSize = wDataSize;
+		pReadEvent->wServiceID = wServiceID;
+
+		//附加数据
+		if (wDataSize > 0)
+		{
+			assert(pData != nullptr);
+			memcpy(m_cbBuffer + sizeof(AS_TCPSocketReadEvent), pData, wDataSize);
+		}
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_SOCKET_READ, m_cbBuffer, sizeof(AS_TCPSocketReadEvent) + wDataSize);
 	}
 
 	bool CAttemperEngine::OnAsynchronismEngineStart()
@@ -312,6 +329,23 @@ namespace Net
 				//处理消息
 				AS_TCPSocketLinkEvent * pConnectEvent = (AS_TCPSocketLinkEvent *)pData;
 				m_pIAttemperEngineSink->OnEventTCPSocketLink(pConnectEvent->wServiceID, pConnectEvent->iErrorCode);
+
+				return true;
+			}
+			case EVENT_TCP_SOCKET_READ:
+			{
+				//处理消息
+				AS_TCPSocketReadEvent * pSocketReadEvent = (AS_TCPSocketReadEvent *)pData;
+
+				//大小断言
+				assert(wDataSize >= sizeof(AS_TCPSocketReadEvent));
+				assert(wDataSize == (sizeof(AS_TCPSocketReadEvent) + pSocketReadEvent->wDataSize));
+
+				//大小效验
+				if (wDataSize < sizeof(AS_TCPSocketReadEvent)) return false;
+				if (wDataSize != (sizeof(AS_TCPSocketReadEvent) + pSocketReadEvent->wDataSize)) return false;
+
+				m_pIAttemperEngineSink->OnEventTCPSocketRead(pSocketReadEvent->wServiceID, pSocketReadEvent->Command, pSocketReadEvent + 1, pSocketReadEvent->wDataSize);
 
 				return true;
 			}

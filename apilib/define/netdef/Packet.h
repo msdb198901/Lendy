@@ -103,6 +103,15 @@ namespace Net
 		uint16							wServiceID;							//服务标识
 	};
 
+	//读取事件
+	struct AS_TCPSocketReadEvent
+	{
+		uint16							wDataSize;							//数据大小
+		uint16							wServiceID;							//服务标识
+		TCP_Command						Command;							//命令信息
+	};
+
+
 	//////////////////////////////////////////////////////////////////////////////////
 //数据定义
 

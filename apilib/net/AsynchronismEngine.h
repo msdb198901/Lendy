@@ -3,7 +3,9 @@
 
 #include "../KernelEngineHead.h"
 #include "Strand.h"
+#include "DataQueue.h"
 #include <thread>
+#include <mutex>
 
 namespace Net
 {
@@ -46,6 +48,12 @@ namespace Net
 		std::shared_ptr<Net::IOContext> 	m_ioContext;
 		Net::Strand*						m_pStrand;
 		std::thread*						m_pThread;
+
+		//辅助变量
+	private:
+		std::mutex							m_mutex;
+		BYTE								m_cbBuffer[SOCKET_TCP_BUFFER];	//接收缓冲
+		Util::DataQueue						m_dataQueue;
 	};
 }
 

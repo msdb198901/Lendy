@@ -4,9 +4,9 @@
 #include "KernelEngineHead.h"
 #include "DBExports.h"
 #include "Header.h"
-#include "RoomListManager.h"
+#include "TableFrame.h"
 
-namespace Logon
+namespace Game
 {
 	//绑定参数
 	struct tagBindParameter
@@ -23,6 +23,8 @@ namespace Logon
 		LT_MOBILE	= 2,				//手机类型
 		LT_COMPUTER = 3,				//电脑类型
 	};
+
+	typedef std::vector<CTableFrame *> CTableFrameArray;
 
 	class CAttemperEngineSink : public IAttemperEngineSink
 	{
@@ -65,6 +67,11 @@ namespace Logon
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
 		
+		//辅助函数
+	protected:
+		//配置桌子
+		bool InitTableFrameArray();
+
 		//连接处理
 	protected:
 		//注册事件
@@ -87,16 +94,17 @@ namespace Logon
 
 	private:
 		tagBindParameter *				m_pBindParameter;					//辅助数组
+		tagGameServiceOption *			m_pGameServiceOption;				//服务配置
 
 		//组件接口
 	protected:
 		ITCPNetworkEngine *				m_pITCPNetworkEngine;				//网络引擎
 		ITCPSocketService *				m_pITCPSocketService;
+		IGameServiceManager *			m_pIGameServiceManager;				//服务管理
 
 		//组件变量
 	protected:
-		CRoomListManager				m_RoomListManager;					//列表管理
-
+		CTableFrameArray				m_TableFrameArray;					//桌子数组
 	};
 }
 

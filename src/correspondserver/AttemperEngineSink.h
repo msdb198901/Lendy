@@ -4,24 +4,27 @@
 #include "KernelEngineHead.h"
 #include "DBExports.h"
 #include "Header.h"
-#include "RoomListManager.h"
 
-namespace Logon
+namespace Correspond
 {
+	//服务类型
+	enum enServiceKind
+	{
+		ServiceKind_None,				//无效服务
+		ServiceKind_Game,				//游戏服务
+		ServiceKind_Plaza,				//广场服务
+		ServiceKind_Chat,				//好友服务
+	};
+
 	//绑定参数
 	struct tagBindParameter
 	{
 		//网络参数
-		uint64							dwSocketID;							//网络标识
-		uint64							dwClientAddr;						//连接地址
-		uint8							cbClientKind;						//连接类型
-	};
-
-	enum LinkType
-	{
-		LT_FLASH	= 1,				//网页类型
-		LT_MOBILE	= 2,				//手机类型
-		LT_COMPUTER = 3,				//电脑类型
+		uint32							dwSocketID;							//网络标识
+		uint32							dwClientAddr;						//连接地址
+																	
+		uint16							wServiceID;							//服务标识
+		enServiceKind					ServiceKind;						//服务类型
 	};
 
 	class CAttemperEngineSink : public IAttemperEngineSink
@@ -65,25 +68,20 @@ namespace Logon
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
 		
-		//连接处理
+		//网络事件
 	protected:
-		//注册事件
-		bool OnTCPSocketMainRegister(uint16 wSubCmdID, void * pData, uint16 wDataSize);
-		//列表事件
-		bool OnTCPSocketMainServiceInfo(uint16 wSubCmdID, void * pData, uint16 wDataSize);
-
-		//手机事件
-	protected:
-		//登录处理
-		bool OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint64 dwSocketID);
-
-	protected:
-		//游客登录
-		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint64 dwSocketID);
-
-	protected:
-		//登陆失败
-		bool OnLogonFailure(uint64 dwSocketID, LogonErrorCode &lec);
+		//注册服务
+		bool OnTCPNetworkMainRegister(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		//服务状态
+		bool OnTCPNetworkMainServiceInfo(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		//用户汇总
+		bool OnTCPNetworkMainUserCollect(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		//远程服务
+		bool OnTCPNetworkMainRemoteService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		//管理服务
+		bool OnTCPNetworkMainManagerService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		//机器服务
+		bool OnTCPNetworkMainAndroidService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
 
 	private:
 		tagBindParameter *				m_pBindParameter;					//辅助数组
@@ -91,12 +89,6 @@ namespace Logon
 		//组件接口
 	protected:
 		ITCPNetworkEngine *				m_pITCPNetworkEngine;				//网络引擎
-		ITCPSocketService *				m_pITCPSocketService;
-
-		//组件变量
-	protected:
-		CRoomListManager				m_RoomListManager;					//列表管理
-
 	};
 }
 

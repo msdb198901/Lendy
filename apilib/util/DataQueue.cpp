@@ -119,33 +119,25 @@ namespace Util
 		//							m_dwQuery			m_dwQuery
 		///////////////////////////////////////////////////////////////////////////
 		bool bAlloc = false;
+
+		//缓冲判断
 		if ((m_dwDataSize + dwNeedSize) > m_dwQueueSize) bAlloc = true;
 
-		if (m_dwInsertIndex > m_dwQueryIndex)
+		//重新开始
+		if ((m_dwInsertIndex == m_dwTailIndex) && ((m_dwInsertIndex + dwNeedSize) > m_dwQueueSize))
 		{
-			if (m_dwInsertIndex + dwNeedSize > m_dwQueueSize)
-			{
-				if (m_dwQueryIndex > dwNeedSize)
-				{
-					m_dwInsertIndex = 0;
-				}
-				else
-				{
-					bAlloc = true;
-				}
-			}
-
-			if ((m_dwInsertIndex + dwNeedSize) > m_dwQueryIndex)
-			{
-				bAlloc = true;
-			}
+			if (m_dwQueryIndex >= dwNeedSize) m_dwInsertIndex = 0;
+			else bAlloc = true;
 		}
-		else
+
+		//缓冲判断
+		if ((m_dwInsertIndex < m_dwTailIndex) && ((m_dwInsertIndex + dwNeedSize) > m_dwQueryIndex)) bAlloc = true;
+		////////////////////////////////////////////////////  
+		//头追上尾或尾追上头  
+		if (m_dwInsertIndex + dwNeedSize > m_dwQueryIndex && m_dwQueryIndex >= m_dwInsertIndex)
 		{
-			if (m_dwInsertIndex + dwNeedSize > m_dwQueryIndex)
-			{
-				bAlloc = true;
-			}
+			//尾追上头  
+			if (m_dwDataSize > 0) bAlloc = true;
 		}
 
 		try

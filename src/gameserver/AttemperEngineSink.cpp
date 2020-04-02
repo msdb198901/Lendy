@@ -10,7 +10,7 @@
 #define OPEN_SWITCH		1
 #define CLIENT_SWITCH	0
 
-namespace Logon
+namespace Game
 {
 	using namespace LogComm;
 
@@ -26,6 +26,11 @@ namespace Logon
 
 	CAttemperEngineSink::~CAttemperEngineSink()
 	{
+		for (size_t i = 0; i < m_TableFrameArray.size(); ++i)
+		{
+			PDELETE(m_TableFrameArray[i]);
+		}
+		m_TableFrameArray.clear();
 	}
 
 	void CAttemperEngineSink::Release()
@@ -168,6 +173,37 @@ namespace Logon
 		return false;
 	}
 
+	bool CAttemperEngineSink::InitTableFrameArray()
+	{
+		tagTableFrameParameter TableFrameParameter;
+		memset(&TableFrameParameter, 0, sizeof(TableFrameParameter));
+
+		//服务组件
+		TableFrameParameter.pIGameServiceManager = m_pIGameServiceManager;
+		TableFrameParameter.pITCPSocketService = m_pITCPSocketService;
+
+		//配置参数
+		TableFrameParameter.pGameServiceOption = m_pGameServiceOption;
+
+		//桌子容器
+		m_TableFrameArray.resize(m_pGameServiceOption->wTableCount);
+
+		//创建桌子
+		for (uint16 i = 0; i < m_pGameServiceOption->wTableCount; ++i)
+		{
+			//创建对象
+			m_TableFrameArray[i] = new CTableFrame;
+
+			//配置桌子
+			if (m_TableFrameArray[i]->InitializationFrame(i, TableFrameParameter) == false)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	bool CAttemperEngineSink::OnTCPSocketMainRegister(uint16 wSubCmdID, void * pData, uint16 wDataSize)
 	{
 		switch (wSubCmdID)
@@ -217,26 +253,6 @@ namespace Logon
 
 				//变量定义
 				CMD_CS_S_ServerOnLine * pServerOnLine = (CMD_CS_S_ServerOnLine *)pData;
-
-				tagGameServer *pRoomItem = m_RoomListManager.SearchRoomServer(pServerOnLine->wServerID);
-				if (pRoomItem == nullptr) return true;
-
-				uint32 dwOldOnlineCount = 0, dwOldAndroidCount = 0;
-				dwOldOnlineCount = pRoomItem->dwOnLineCount;
-				dwOldAndroidCount = pRoomItem->dwAndroidCount;
-
-				//目录人数
-				tagGameKind * pGameKindItem = m_RoomListManager.SearchGameKind(pRoomItem->wKindID);
-				if (pGameKindItem != NULL)
-				{
-					//在线人数
-					pGameKindItem->dwOnLineCount -= dwOldOnlineCount;
-					pGameKindItem->dwOnLineCount += pRoomItem->dwOnLineCount;
-
-					//机器人数
-					pGameKindItem->dwAndroidCount -= dwOldAndroidCount;
-					pGameKindItem->dwAndroidCount += pRoomItem->dwAndroidCount;
-				}
 				return true;
 			}
 			case SUB_CS_S_SERVER_INSERT:	//房间插入

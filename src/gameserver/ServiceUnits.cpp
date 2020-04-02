@@ -2,7 +2,7 @@
 #include "Log.h"
 #include "INIReader.h"
 
-namespace Logon
+namespace Game
 {
 	using namespace LogComm;
 	using namespace Util;

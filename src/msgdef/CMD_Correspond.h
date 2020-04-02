@@ -35,6 +35,7 @@ struct CMD_CS_S_RegisterFailure
 //房间命令
 #define SUB_CS_S_SERVER_INFO		110									//房间信息
 #define SUB_CS_S_SERVER_ONLINE		111									//房间人数
+#define SUB_CS_S_SERVER_INSERT		112									//房间列表
 #define SUB_CS_S_SERVER_FINISH		115									//房间完成
 
 //房间人数

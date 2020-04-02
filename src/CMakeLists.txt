@@ -3,5 +3,6 @@ CollectIncludeDirectories(
   PUBLIC_INCLUDES)
 
 add_definitions(-DASIO_STANDALONE)
+add_subdirectory(correspondserver)
 add_subdirectory(logonserver)
-
+add_subdirectory(gameserver)

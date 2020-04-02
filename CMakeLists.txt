@@ -15,7 +15,7 @@ include(AutoCollect)
 include(options)
 include(showoptions)
 
-
+set_property(GLOBAL PROPERTY USE_FOLDERS On)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_package(OpenSSL REQUIRED)

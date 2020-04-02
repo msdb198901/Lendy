@@ -28,6 +28,7 @@ if (HAVE_OPEN)
 endif()
 
 add_library(fmt STATIC ${FMT_SOURCES})
+set_target_properties(fmt PROPERTIES FOLDER "KernelEngine") 
 
 target_include_directories(fmt
   PUBLIC

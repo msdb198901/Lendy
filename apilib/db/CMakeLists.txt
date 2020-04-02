@@ -8,6 +8,7 @@ CollectIncludeDirectories(
 
 add_definitions(-DLENDY_API_EXPORT_COMMON)
 add_library(DataBase SHARED ${PRIVATE_SOURCES})
+set_target_properties(DataBase PROPERTIES FOLDER "KernelEngine") 
 
 target_include_directories(DataBase
   PUBLIC

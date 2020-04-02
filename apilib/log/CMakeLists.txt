@@ -8,6 +8,7 @@ CollectIncludeDirectories(
 
 add_definitions(-DLENDY_API_EXPORT_COMMON)
 add_library(Log SHARED ${PRIVATE_SOURCES})
+set_target_properties(Log PROPERTIES FOLDER "KernelEngine") 
 
 target_include_directories(Log
   PUBLIC

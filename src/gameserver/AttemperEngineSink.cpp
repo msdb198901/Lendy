@@ -47,6 +47,8 @@ namespace Game
 	bool CAttemperEngineSink::OnAttemperEngineStart(IUnknownEx * pIUnknownEx)
 	{
 		m_pBindParameter = new tagBindParameter[MAX_LINK_COUNT];
+		
+		InitTableFrameArray();
 		return true;
 	}
 
@@ -186,16 +188,16 @@ namespace Game
 		TableFrameParameter.pGameServiceOption = m_pGameServiceOption;
 
 		//桌子容器
-		m_TableFrameArray.resize(m_pGameServiceOption->wTableCount);
+		m_TableFrameArray.resize(60);// m_pGameServiceOption->wTableCount);
 
 		//创建桌子
-		for (uint16 i = 0; i < m_pGameServiceOption->wTableCount; ++i)
+		for (uint16 i = 0; i < 60; ++i)
 		{
 			//创建对象
 			m_TableFrameArray[i] = new CTableFrame;
 
 			//配置桌子
-			if (m_TableFrameArray[i]->InitializationFrame(i, TableFrameParameter) == false)
+			if (!m_TableFrameArray[i]->InitializationFrame(i, TableFrameParameter))
 			{
 				return false;
 			}

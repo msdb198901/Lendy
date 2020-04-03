@@ -10880,3 +10880,11 @@ Build/src/subgame/redblack/RedBlack.dir/Debug/vc141.pdb
 Build/src/subgame/redblack/RedBlack.vcxproj
 Build/src/subgame/redblack/RedBlack.vcxproj.filters
 Build/src/subgame/redblack/RedBlack.vcxproj.user
+Build/.vs/lendy/v15/ipch/AutoPCH/256bedfff147cee5/GAMESERVERMANAGER.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/9ad73fb3fd746749/TABLEFRAMESINK.ipch
+Build/src/gameserver/RedBlack.dll
+Build/src/gameserver/RedBlack.lib
+Build/src/subgame/redblack/Debug/RedBlack.exp
+Build/src/subgame/redblack/Debug/RedBlack.lib
+Build/src/subgame/redblack/RedBlack.dir/Debug/RedBlack.tlog/RedBlack.write.1u.tlog
+Build/src/subgame/redblack/RedBlack.dir/Debug/TableFrameSink.obj

@@ -196,7 +196,15 @@ extern "C" LENDY_COMMON_API void* Create##ObjectType(GGUID uuid)		\
 	catch (const std::exception& ){  }									\
 	PDELETE(pObjectType);												\
 	return nullptr;														\
-}																		
+}	
+
+//×é¼þ¸¨ÖúÀàºê
+#define DECLARE_MOUDLE_DYNAMIC(ObjectType)																	\
+class C##ObjectType##Helper : public CMoudleHelper<I##ObjectType>											\
+{																											\
+public:																										\
+	C##ObjectType##Helper() : CMoudleHelper<I##ObjectType>(IID_I##ObjectType) { }							\
+};
 																																			
 #define DECLARE_MOUDLE_HELPER(ObjectType, DllName, CreateFunctionName)	\
 class C##ObjectType##Helper : public CMoudleHelper<I##ObjectType>		\

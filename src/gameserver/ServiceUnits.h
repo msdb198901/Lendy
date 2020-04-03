@@ -44,6 +44,8 @@ namespace Game
 
 		//内部函数
 	protected:
+		//更新配置
+		bool UpdateConfig();
 		//配置组件
 		bool InitializeService();
 		//启动内核
@@ -80,6 +82,7 @@ namespace Game
 		CAttemperEngineHelper				m_AttemperEngine;					//调度引擎
 		CTCPNetworkEngineHelper				m_TCPNetworkEngine;
 		CTCPSocketServiceHelper				m_TCPSocketService;					//服务通讯
+		CGameServiceManagerHelper			m_GameServiceManager;				//游戏模块
 
 		//内部綫程
 	private:

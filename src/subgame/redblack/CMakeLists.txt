@@ -16,7 +16,6 @@ target_include_directories(RedBlack
   PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR})
 
-#target_link_libraries(RedBlack
-#  PUBLIC
-#    Log
-#    mysql)
+target_link_libraries(RedBlack
+  PUBLIC
+    Net)

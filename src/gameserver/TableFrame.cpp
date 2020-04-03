@@ -19,16 +19,16 @@ namespace Game
 	bool CTableFrame::InitializationFrame(uint16 wTableID, tagTableFrameParameter & TableFrameParameter)
 	{
 		m_wTableID = wTableID;
-		m_wChairCount = TableFrameParameter.pGameServiceOption->wChairCount;
-		m_pGameServiceOption = TableFrameParameter.pGameServiceOption;
+		//m_wChairCount = TableFrameParameter.pGameServiceOption->wChairCount;
+		//m_pGameServiceOption = TableFrameParameter.pGameServiceOption;
 
-		m_pITCPSocketService = TableFrameParameter.pITCPSocketService;
+		//m_pITCPSocketService = TableFrameParameter.pITCPSocketService;
 		
 		//´´½¨×À×Ó
 		IGameServiceManager * pIGameServiceManager = TableFrameParameter.pIGameServiceManager;
 		m_pITableFrameSink = (ITableFrameSink *)pIGameServiceManager->CreateTableFrameSink(IID_ITableFrameSink);
 
-		return false;
+		return true;
 	}
 	
 }

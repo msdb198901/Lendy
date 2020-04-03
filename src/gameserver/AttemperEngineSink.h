@@ -1,10 +1,10 @@
 #ifndef ATTEMPER_ENGINE_SINK_H
 #define ATTEMPER_ENGINE_SINK_H
 
-#include "KernelEngineHead.h"
 #include "DBExports.h"
 #include "Header.h"
 #include "TableFrame.h"
+#include "GameComponent.h"
 
 namespace Game
 {

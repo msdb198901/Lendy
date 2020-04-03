@@ -1,7 +1,7 @@
 #ifndef TABLE_FRAME_H
 #define TABLE_FRAME_H
 
-#include "Header.h"
+#include "GameComponent.h"
 
 namespace Game
 {
@@ -25,7 +25,7 @@ namespace Game
 	
 		//数据接口
 	protected:
-		ITCPSocketService *				m_pITCPSocketService;				//网络服务
+		Net::ITCPSocketService *		m_pITCPSocketService;				//网络服务
 		ITableFrameSink	*				m_pITableFrameSink;					//桌子接口
 
 	//配置信息

@@ -37,6 +37,8 @@ namespace Game
 			return false;
 		}
 
+		UpdateConfig();
+
 		if (!InitializeService())
 		{
 			Conclude();
@@ -91,6 +93,18 @@ namespace Game
 		m_ioContext.run();
 	}
 
+	bool ServiceUnits::UpdateConfig()
+	{
+		//效验状态
+		////assert(m_ServiceStatus == ServiceStatus_Stop);
+		//if (m_ServiceStatus != ServiceStatus_Stop) return false;
+
+		//配置模块
+		///m_GameServiceOption = GameServiceOption;
+		m_GameServiceManager.SetMoudleDLLCreate("RedBlack.dll", SUB_GAME_CREATE_NAME);
+		return true;
+	}
+
 	bool ServiceUnits::InitializeService()
 	{
 		if ((m_AttemperEngine.GetDLLInterface() == nullptr) && (!m_AttemperEngine.CreateInstance()))
@@ -104,6 +118,12 @@ namespace Game
 		}
 
 		if ((m_TCPSocketService.GetDLLInterface() == nullptr) && (!m_TCPSocketService.CreateInstance()))
+		{
+			return false;
+		}
+
+		//游戏模块
+		if ((m_GameServiceManager.GetDLLInterface() == nullptr) && (!m_GameServiceManager.CreateInstance()))
 		{
 			return false;
 		}
@@ -123,6 +143,7 @@ namespace Game
 
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
+		m_AttemperEngineSink.m_pIGameServiceManager = m_GameServiceManager.GetDLLInterface();
 
 		if (!m_TCPNetworkEngine->SetServiceParameter(
 			sConfigMgr->Get("Net", "BindIP", "127.0.0.1"),

@@ -52,6 +52,15 @@ namespace Game
 	{
 		uint8							cbSuccess;							//成功标志
 	};
+
+	struct tagSubGameInfo
+	{
+		std::string						strSection;
+		std::string						strIP;
+		uint16							wPort;
+		uint16							wKindID;
+		uint16							wThreadCount;
+	};
 }
 
 

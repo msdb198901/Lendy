@@ -1,6 +1,7 @@
 #include "ServiceUnits.h"
 #include "Log.h"
 #include "INIReader.h"
+#include "StringUtility.h"
 
 namespace Game
 {
@@ -24,7 +25,7 @@ namespace Game
 	{
 	}
 
-	bool ServiceUnits::Start(Net::IOContext* ioContext)
+	bool ServiceUnits::Start(Net::IOContext* ioContext, int argc, char** argv)
 	{
 		assert(m_ServiceStatus == ServiceStatus_Stop);
 		if (m_ServiceStatus != ServiceStatus_Stop) return false;
@@ -36,6 +37,8 @@ namespace Game
 			assert(nullptr);
 			return false;
 		}
+
+		ParserArgs(argc, argv);
 
 		UpdateConfig();
 
@@ -52,17 +55,7 @@ namespace Game
 			return false;
 		}
 
-		//设置函数
-		m_funcStartNetService = [&]()
-		{
-			if (!m_TCPNetworkEngine->Start(ioContext))
-			{
-				return false;
-			}
-			return true;
-		};
-
-		SendControlPacket(SUC_LOAD_DB_GAME_LIST, NULL, 0);
+		SendControlPacket(SUC_LOAD_DB_GAME_LIST, nullptr, 0);
 		return true;
 	}
 	bool ServiceUnits::Conclude()
@@ -93,15 +86,96 @@ namespace Game
 		m_ioContext.run();
 	}
 
+	bool ServiceUnits::ParserArgs(int argc, char ** argv)
+	{
+		std::vector<std::string> vecArg(argv, argv + argc);
+
+		//startup configuration
+		for (std::vector<std::string>::const_iterator it = vecArg.begin(); it != vecArg.end(); )
+		{
+			//IP
+			if (*it == "-h")
+			{
+				++it;
+				m_SubGameInfo.strIP = *it;
+				LOG_INFO("server.game", "host:%s", m_SubGameInfo.strIP.c_str());
+			}
+			//Port
+			else if (*it == "-p")
+			{
+				++it;
+				m_SubGameInfo.wPort = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
+				LOG_INFO("server.game", "port:%i", m_SubGameInfo.wPort);
+			}
+			//KindID
+			else if (*it == "-k")
+			{
+				++it;
+				m_SubGameInfo.wKindID = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
+				LOG_INFO("server.game", "kindid:%i", m_SubGameInfo.wKindID);
+			}
+			//ThreadCount
+			else if (*it == "-t")
+			{
+				++it;
+				m_SubGameInfo.wThreadCount = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
+				LOG_INFO("server.game", "threadcount:%i", m_SubGameInfo.wThreadCount);
+			}
+			++it;
+		}
+
+		assert(m_SubGameInfo.wKindID != 0);
+		std::string strSection = StringFormat("Game_%d", m_SubGameInfo.wKindID);
+
+		m_GameServiceOption.wKindID = m_SubGameInfo.wKindID;
+		m_GameServiceOption.wServerPort = m_SubGameInfo.wPort;
+		m_GameServiceOption.wServerID = sConfigMgr->GetInt32(strSection, "ServerID", 0);
+		m_GameServiceOption.wTableCount = sConfigMgr->GetUInt64(strSection, "TableCount", 0);
+		m_GameServiceOption.wChairCount = sConfigMgr->GetInt32(strSection, "ChairCount", 0);
+		
+		m_GameServiceOption.cbDynamicJoin = sConfigMgr->GetInt32(strSection, "DynamicJoin", 0);
+		m_GameServiceOption.cbOffLineTrustee = sConfigMgr->GetInt32(strSection, "OffLineTrustee", 0);
+
+		m_GameServiceOption.lCellScore = sConfigMgr->GetInt32(strSection, "CellScore", 0);
+		m_GameServiceOption.wRevenueRatio = sConfigMgr->GetInt32(strSection, "RevenueRatio", 0);
+		m_GameServiceOption.lServiceScore = sConfigMgr->GetInt32(strSection, "ServiceFee", 0);
+
+		m_GameServiceOption.lMinEnterScore = sConfigMgr->GetUInt64(strSection, "MinEnterScore", 0);
+		m_GameServiceOption.lMaxEnterScore = sConfigMgr->GetUInt64(strSection, "MaxEnterScore", 0);
+
+		m_GameServiceOption.wMaxPlayer = sConfigMgr->GetUInt64(strSection, "MaxPlayer", 0);
+		
+		sprintf_s(m_GameServiceOption.strGameName, "%s", sConfigMgr->Get(strSection, "GameName", "").c_str());
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+		sprintf_s(m_GameServiceOption.strServerDLLName, "%s.dll", sConfigMgr->Get(strSection, "ServerDLLName", "").c_str());
+#else
+		sprintf_s(m_GameServiceOption.strServerDLLName, "%s.so", sConfigMgr->Get(strSection, "ServerDLLName", "").c_str());
+#endif
+		//游戏规则
+		std::string strRule = sConfigMgr->Get(strSection, "CustomRule", "");
+		Util::Tokenizer tok(strRule, '|');
+		for (Util::Tokenizer::const_iterator it = tok.begin(); it != tok.end(); ++it)
+		{
+			m_GameServiceOption.vCustomRule.push_back(atoi(*it));
+		}
+
+		assert(m_GameServiceOption.wServerID != 0);
+		assert(m_GameServiceOption.wTableCount != 0);
+		assert(m_GameServiceOption.wChairCount != 0);
+		assert(m_GameServiceOption.lCellScore != 0);
+		assert(m_GameServiceOption.lMinEnterScore < m_GameServiceOption.lMaxEnterScore);
+		assert(m_GameServiceOption.wTableCount * m_GameServiceOption.wChairCount <= m_GameServiceOption.wMaxPlayer);
+		assert(m_GameServiceOption.strGameName[0] != '/0');
+		assert(m_GameServiceOption.strServerDLLName[0] != '/0');
+		return true;
+	}
+
 	bool ServiceUnits::UpdateConfig()
 	{
 		//效验状态
 		////assert(m_ServiceStatus == ServiceStatus_Stop);
 		//if (m_ServiceStatus != ServiceStatus_Stop) return false;
-
-		//配置模块
-		///m_GameServiceOption = GameServiceOption;
-		m_GameServiceManager.SetMoudleDLLCreate("RedBlack.dll", SUB_GAME_CREATE_NAME);
+		m_GameServiceManager.SetMoudleDLLCreate(m_GameServiceOption.strServerDLLName, SUB_GAME_CREATE_NAME);
 		return true;
 	}
 
@@ -141,18 +215,16 @@ namespace Game
 		if (m_TCPSocketService->SetServiceID(NETWORK_CORRESPOND) == false) return false;
 		if (m_TCPSocketService->SetTCPSocketEvent(pIAttemperEngine) == false) return false;
 
+		m_AttemperEngineSink.m_pGameServiceOption = &m_GameServiceOption;
+
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 		m_AttemperEngineSink.m_pIGameServiceManager = m_GameServiceManager.GetDLLInterface();
 
-		if (!m_TCPNetworkEngine->SetServiceParameter(
-			sConfigMgr->Get("Net", "BindIP", "127.0.0.1"),
-			sConfigMgr->GetInt32("Net", "Port", 8600),
-			sConfigMgr->GetInt32("Net", "Threads", 4)))
+		if (!m_TCPNetworkEngine->SetServiceParameter(m_SubGameInfo.strIP,m_SubGameInfo.wPort,m_SubGameInfo.wThreadCount))
 		{
 			return false;
 		}
-
 		return true;
 	}
 	bool ServiceUnits::StartKernelService(Net::IOContext* ioContext)
@@ -167,9 +239,18 @@ namespace Game
 			return false;
 		}
 
-		//读取DB（DB不采用网狐会定义很多变量，直接用回调函数）
+		//读取DB
 		LogonDatabasePool.Start(LogonDatabasePool);
 
+		//设置函数
+		m_funcStartNetService = [=]()
+		{
+			if (!m_TCPNetworkEngine->Start(ioContext))
+			{
+				return false;
+			}
+			return true;
+		};
 		return true;
 	}
 

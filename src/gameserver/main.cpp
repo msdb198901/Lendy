@@ -7,7 +7,7 @@ int main(int argc, char** argv)
 {
 	using namespace LogComm;
 
-	sLogMgr->Initialize("LogonConfig.ini");
+	sLogMgr->Initialize("GameConfig.ini");
 
 	if (argc < 11)
 	{
@@ -24,12 +24,12 @@ int main(int argc, char** argv)
 		LOG_INFO("server.game", "===================================================================================");
 		return -1;
 	}
-
+	
 	LOG_INFO("server.logon", "µÇÂ¼·þÎñÆ÷Æô¶¯");
 	
 	std::shared_ptr<Net::IOContext> ioContext = std::make_shared<Net::IOContext>();
 
-	SrvUnitsMgr->Start(ioContext.get());
+	SrvUnitsMgr->Start(ioContext.get(), argc, argv);
 
 	asio::io_context::work work(*ioContext);
 	ioContext->run();

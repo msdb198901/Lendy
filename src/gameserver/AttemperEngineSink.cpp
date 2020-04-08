@@ -4,6 +4,7 @@
 #include "CMD_Correspond.h"
 #include "Implementation/LogonDatabase.h"
 #include "Log.h"
+#include "INIReader.h"
 #include "StringUtility.h"
 
 #define MAX_LINK_COUNT 512
@@ -66,20 +67,19 @@ namespace Game
 			//错误判断
 			if (iErrorCode != 0)
 			{
-				LOG_INFO("server.logon", "协调服务器连接失败 [ %ld ]，%ld 秒后将重新连接", iErrorCode, 5);
+				LOG_INFO("server.game", "协调服务器连接失败 [ %ld ]，%ld 秒后将重新连接", iErrorCode, 5);
 				return false;
 			}
 
 			//提示消息
-			LOG_INFO("server.logon", "正在注册游戏登录服务器...");
+			LOG_INFO("server.game", "正在注册游戏登录服务器...");
 
 			//变量定义
 			CMD_CS_C_RegisterPlaza RegisterPlaza;
 			memset(&RegisterPlaza, 0, sizeof(RegisterPlaza));
 
 			//设置变量
-			std::string t = "登录服务器";
-			std::wstring wstrLogon = Util::StringUtility::StringToWString(t);
+			std::wstring wstrLogon = Util::StringUtility::StringToWString(m_pGameServiceOption->strGameName);
 			swprintf_s(RegisterPlaza.szServerName, L"%s", wstrLogon.c_str());
 
 			std::string t1 = "192.168.1.217";
@@ -167,8 +167,7 @@ namespace Game
 			case SUC_CONNECT_CORRESPOND:
 			{
 				//发起连接
-				std::string str = "192.168.1.217";
-				m_pITCPSocketService->Connect(str, 8610);
+				m_pITCPSocketService->Connect(sConfigMgr->Get("Net", "BindIP", "127.0.0.1"), sConfigMgr->GetInt32("Net", "Port", 8600));
 				return true;
 			}
 		}
@@ -188,10 +187,10 @@ namespace Game
 		TableFrameParameter.pGameServiceOption = m_pGameServiceOption;
 
 		//桌子容器
-		m_TableFrameArray.resize(60);// m_pGameServiceOption->wTableCount);
+		m_TableFrameArray.resize(m_pGameServiceOption->wTableCount);
 
 		//创建桌子
-		for (uint16 i = 0; i < 60; ++i)
+		for (uint16 i = 0; i < m_pGameServiceOption->wTableCount; ++i)
 		{
 			//创建对象
 			m_TableFrameArray[i] = new CTableFrame;
@@ -226,7 +225,7 @@ namespace Game
 				//显示消息
 				std::string strResult = Util::StringUtility::WStringToString(pRegisterFailure->szDescribeString);
 
-				LOG_INFO("server.logon", "%d", strResult.c_str());
+				LOG_INFO("server.game", "%d", strResult.c_str());
 
 				//事件通知
 				//CP_ControlResult ControlResult;
@@ -339,7 +338,7 @@ namespace Game
 					break;
 				}
 				
-				LOG_ERROR("server.logon", "禁止登录逻辑出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.game", "禁止登录逻辑出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
 				break;
 			}
 		}
@@ -367,7 +366,7 @@ namespace Game
 			}
 			else 
 			{
-				LOG_ERROR("server.logon", "分配游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.game", "分配游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
 			}
 
 
@@ -392,7 +391,7 @@ namespace Game
 			result = LogonDatabasePool.Query(stmt);
 			if (!result) 
 			{
-				LOG_ERROR("server.logon", "插入游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.game", "插入游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
 				return false;
 			}
 		}

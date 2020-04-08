@@ -40,8 +40,8 @@ namespace Game
 		uint16							wTableCount;						//桌子数目
 
 		//服务属性
-		wchar_t							szGameName[32];						//游戏名字
-		wchar_t							szServerDLLName[32];				//进程名字
+		char							strGameName[32];					//游戏名字
+		char							strServerDLLName[32];				//进程名字
 
 		//自定规则
 		std::vector<uint8>				vCustomRule;						//游戏规则

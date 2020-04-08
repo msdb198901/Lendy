@@ -1,6 +1,7 @@
 @echo off
 
 set config_file_path="%~dp0src\logonserver"
+set game_config_file_path="%~dp0src\gameserver"
 set src_file_path="%~dp0Build\apilib"
 set dst_file_path="%~dp0Build\src\logonserver"
 set dst_game_path="%~dp0Build\src\gameserver"
@@ -49,4 +50,5 @@ xcopy %src_file_path%\db\Debug\*.dll %dst_game_path% /s /e /y
 xcopy %src_file_path%\Debug\*.lib %dst_game_path% /s /e /y
 xcopy %src_file_path%\Debug\*.dll %dst_game_path% /s /e /y
 xcopy %config_file_path%\*.ini %dst_game_path% /s /e /y
+xcopy %game_config_file_path%\*.ini %dst_game_path% /s /e /y
 

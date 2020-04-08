@@ -33,7 +33,7 @@ namespace Game
 
 	public:
 		//启动服务
-		bool Start(Net::IOContext* ioContext);
+		bool Start(Net::IOContext* ioContext, int argc, char** argv);
 
 		//停止服务
 		bool Conclude();
@@ -44,6 +44,8 @@ namespace Game
 
 		//内部函数
 	protected:
+		//解析参数
+		bool ParserArgs(int argc, char** argv);
 		//更新配置
 		bool UpdateConfig();
 		//配置组件
@@ -73,6 +75,9 @@ namespace Game
 	private:
 		//状态变量
 		enServiceStatus						m_ServiceStatus;
+
+		tagSubGameInfo						m_SubGameInfo;
+		tagGameServiceOption 				m_GameServiceOption;				//服务配置
 
 		//服务组件
 	public:

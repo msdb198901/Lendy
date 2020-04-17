@@ -7,7 +7,8 @@
 
 namespace Net
 {
-	class CAttemperEngine : public IAttemperEngine, public ITCPNetworkEngineEvent, public IAsynchronismEngineSink, public ITCPSocketEvent
+	class CAttemperEngine : public IAttemperEngine, public ITCPNetworkEngineEvent, public IAsynchronismEngineSink, public ITCPSocketEvent, 
+		public ITimerEngineEvent
 	{
 		//函数定义
 public:
@@ -37,6 +38,11 @@ public:
 	public:
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
+
+		//接口定义
+	public:
+		//时间事件
+		virtual bool OnEventTimer(uint32 dwTimerID);
 
 		//客户事件
 	public:

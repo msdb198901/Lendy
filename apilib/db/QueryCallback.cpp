@@ -1,4 +1,5 @@
 #include "QueryCallback.h"
+#include <assert.h>
 
 namespace DB
 {

@@ -6,49 +6,51 @@ set src_file_path="%~dp0Build\apilib"
 set dst_file_path="%~dp0Build\src\logonserver"
 set dst_game_path="%~dp0Build\src\gameserver"
 
-xcopy %src_file_path%\dep\fmt\Debug\*.lib %dst_file_path% /s /e /y
-xcopy %src_file_path%\util\Debug\*.lib %dst_file_path%/s /e /y
-xcopy %src_file_path%\util\Debug\*.dll %dst_file_path% /s /e /y
-xcopy %src_file_path%\log\Debug\*.lib %dst_file_path% /s /e /y
-xcopy %src_file_path%\log\Debug\*.dll %dst_file_path% /s /e /y
-xcopy %src_file_path%\Net\Debug\*.lib %dst_file_path% /s /e /y
-xcopy %src_file_path%\Net\Debug\*.dll %dst_file_path% /s /e /y
-xcopy %src_file_path%\db\Debug\*.lib %dst_file_path% /s /e /y
-xcopy %src_file_path%\db\Debug\*.dll %dst_file_path% /s /e /y
+set mode="Release"
+set mode="Debug"
+xcopy %src_file_path%\dep\fmt\%mode%\*.lib %dst_file_path% /s /e /y
+xcopy %src_file_path%\util\%mode%\*.lib %dst_file_path%/s /e /y
+xcopy %src_file_path%\util\%mode%\*.dll %dst_file_path% /s /e /y
+xcopy %src_file_path%\log\%mode%\*.lib %dst_file_path% /s /e /y
+xcopy %src_file_path%\log\%mode%\*.dll %dst_file_path% /s /e /y
+xcopy %src_file_path%\Net\%mode%\*.lib %dst_file_path% /s /e /y
+xcopy %src_file_path%\Net\%mode%\*.dll %dst_file_path% /s /e /y
+xcopy %src_file_path%\db\%mode%\*.lib %dst_file_path% /s /e /y
+xcopy %src_file_path%\db\%mode%\*.dll %dst_file_path% /s /e /y
 
-xcopy %src_file_path%\Debug\*.lib %dst_file_path% /s /e /y
-xcopy %src_file_path%\Debug\*.dll %dst_file_path% /s /e /y
+xcopy %src_file_path%\%mode%\*.lib %dst_file_path% /s /e /y
+xcopy %src_file_path%\%mode%\*.dll %dst_file_path% /s /e /y
 xcopy %config_file_path%\*.ini %dst_file_path% /s /e /y
 
 
-xcopy %src_file_path%\dep\fmt\Debug\*.lib %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\util\Debug\*.lib %dst_file_path%\Debug  /s /e /y
-xcopy %src_file_path%\util\Debug\*.dll %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\log\Debug\*.lib %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\log\Debug\*.dll %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\Net\Debug\*.lib %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\Net\Debug\*.dll %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\db\Debug\*.lib %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\db\Debug\*.dll %dst_file_path%\Debug /s /e /y
+xcopy %src_file_path%\dep\fmt\%mode%\*.lib %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\util\%mode%\*.lib %dst_file_path%\%mode%  /s /e /y
+xcopy %src_file_path%\util\%mode%\*.dll %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\log\%mode%\*.lib %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\log\%mode%\*.dll %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\Net\%mode%\*.lib %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\Net\%mode%\*.dll %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\db\%mode%\*.lib %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\db\%mode%\*.dll %dst_file_path%\%mode% /s /e /y
 
-xcopy %src_file_path%\Debug\*.lib %dst_file_path%\Debug /s /e /y
-xcopy %src_file_path%\Debug\*.dll %dst_file_path%\Debug /s /e /y
-xcopy %config_file_path%\*.ini %dst_file_path%\Debug /s /e /y
+xcopy %src_file_path%\%mode%\*.lib %dst_file_path%\%mode% /s /e /y
+xcopy %src_file_path%\%mode%\*.dll %dst_file_path%\%mode% /s /e /y
+xcopy %config_file_path%\*.ini %dst_file_path%\%mode% /s /e /y
 
 
 @////////////////////////////////////////////////
-xcopy %src_file_path%\dep\fmt\Debug\*.lib %dst_game_path% /s /e /y
-xcopy %src_file_path%\util\Debug\*.lib %dst_game_path%/s /e /y
-xcopy %src_file_path%\util\Debug\*.dll %dst_game_path% /s /e /y
-xcopy %src_file_path%\log\Debug\*.lib %dst_game_path% /s /e /y
-xcopy %src_file_path%\log\Debug\*.dll %dst_game_path% /s /e /y
-xcopy %src_file_path%\Net\Debug\*.lib %dst_game_path% /s /e /y
-xcopy %src_file_path%\Net\Debug\*.dll %dst_game_path% /s /e /y
-xcopy %src_file_path%\db\Debug\*.lib %dst_game_path% /s /e /y
-xcopy %src_file_path%\db\Debug\*.dll %dst_game_path% /s /e /y
+xcopy %src_file_path%\dep\fmt\%mode%\*.lib %dst_game_path% /s /e /y
+xcopy %src_file_path%\util\%mode%\*.lib %dst_game_path%/s /e /y
+xcopy %src_file_path%\util\%mode%\*.dll %dst_game_path% /s /e /y
+xcopy %src_file_path%\log\%mode%\*.lib %dst_game_path% /s /e /y
+xcopy %src_file_path%\log\%mode%\*.dll %dst_game_path% /s /e /y
+xcopy %src_file_path%\Net\%mode%\*.lib %dst_game_path% /s /e /y
+xcopy %src_file_path%\Net\%mode%\*.dll %dst_game_path% /s /e /y
+xcopy %src_file_path%\db\%mode%\*.lib %dst_game_path% /s /e /y
+xcopy %src_file_path%\db\%mode%\*.dll %dst_game_path% /s /e /y
 
-xcopy %src_file_path%\Debug\*.lib %dst_game_path% /s /e /y
-xcopy %src_file_path%\Debug\*.dll %dst_game_path% /s /e /y
+xcopy %src_file_path%\%mode%\*.lib %dst_game_path% /s /e /y
+xcopy %src_file_path%\%mode%\*.dll %dst_game_path% /s /e /y
 xcopy %config_file_path%\*.ini %dst_game_path% /s /e /y
 xcopy %game_config_file_path%\*.ini %dst_game_path% /s /e /y
 

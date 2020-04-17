@@ -29,6 +29,8 @@ namespace Net
 	static GGUID IID_IAttemperEngineSink = { 0x3620c4d7, 0xfe6, 0x4eee, { 0xad, 0x4f, 0x79, 0xac, 0x23, 0x97, 0xc7, 0x62 } };
 	static GGUID IID_ITCPSocketService = { 0x3fbd00dc, 0x72ba, 0x4686, { 0xa4, 0xa1, 0x1e, 0xd2, 0x10, 0x14, 0xbb, 0xd0 } };
 	static GGUID IID_ITCPSocketEvent = { 0x82c3bfaa, 0xc4c8, 0x40a8, { 0x9e, 0xd7, 0x15, 0xfb, 0x6d, 0xf2, 0x40, 0xbf } };
+	static GGUID IID_ITimerEngine = { 0xc3e77af5, 0x297d, 0x4708, { 0xa2, 0x7b, 0x8f, 0xa8, 0x71, 0xcb, 0x16, 0x59 } };
+	static GGUID IID_ITimerEngineEvent = { 0x5c0ff1b6, 0x659d, 0x44fe, { 0x9c, 0xcc, 0x50, 0xc3, 0xf7, 0x86, 0x4a, 0x4d } };
 
 	//////////////////////////////service/////////////////////////////
 	//网络接口
@@ -150,6 +152,11 @@ namespace Net
 		//控制事件
 		virtual bool OnEventControl(uint16 wIdentifier, void * pData, uint16 wDataSize) = 0;
 
+		//内核事件
+	public:
+		//时间事件
+		virtual bool OnEventTimer(uint32 dwTimerID) = 0;
+
 		//连接事件
 	public:
 		//连接事件
@@ -169,6 +176,34 @@ namespace Net
 		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID) = 0;
 	};
 
+	//定时器引擎
+	struct ITimerEngine : public IServiceModule
+	{
+		//配置接口
+	public:
+		//设置接口
+		virtual bool SetTimerEngineEvent(IUnknownEx * pIUnknownEx) = 0;
+
+		//功能接口
+	public:
+		//设置定时器
+		virtual bool SetTimer(uint32 dwTimerID, uint32 dwElapse, uint32 dwRepeat) = 0;
+		//删除定时器
+		virtual bool KillTimer(uint32 dwTimerID) = 0;
+		//删除定时器
+		virtual bool KillAllTimer() = 0;
+	};
+
+	//定时器事件
+	struct ITimerEngineEvent : public IUnknownEx
+	{
+		//接口定义
+	public:
+		//时间事件
+		virtual bool OnEventTimer(uint32 dwTimerID) = 0;
+	};
+
+	DECLARE_MOUDLE_HELPER(TimerEngine, NETWORK_ENGINE_DLL_NAME, "CreateTimerEngine")
 	DECLARE_MOUDLE_HELPER(AttemperEngine, NETWORK_ENGINE_DLL_NAME, "CreateAttemperEngine")
 	DECLARE_MOUDLE_HELPER(TCPNetworkEngine, NETWORK_ENGINE_DLL_NAME, "CreateTCPNetworkEngine")
 	DECLARE_MOUDLE_HELPER(TCPSocketService, NETWORK_ENGINE_DLL_NAME, "CreateTCPSocketService")

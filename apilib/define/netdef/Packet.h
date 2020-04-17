@@ -19,7 +19,7 @@
 #define SOCKET_TCP_BUFFER			16384								//网络缓冲
 #define SOCKET_TCP_PACKET			(SOCKET_TCP_BUFFER-sizeof(TCP_Head))//网络缓冲
 
-
+#define EVENT_TIMER					0x0001								//时间事件
 #define EVENT_CONTROL				0x0002								//控制事件
 
 //网络事件
@@ -72,6 +72,12 @@ namespace Net
 	struct AS_ControlEvent
 	{
 		uint32							wControlID;							//控制标识
+	};
+
+	//定时器事件
+	struct AS_TimerEvent
+	{
+		uint32							dwTimerID;							//时间标识
 	};
 
 	//应答事件

@@ -67,6 +67,10 @@ namespace Game
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
 		
+		//内核事件
+	public:
+		virtual bool OnEventTimer(uint32 dwTimerID);
+
 		//辅助函数
 	protected:
 		//配置桌子
@@ -98,6 +102,7 @@ namespace Game
 
 		//组件接口
 	protected:
+		ITimerEngine *					m_pITimerEngine;					//时间引擎
 		ITCPNetworkEngine *				m_pITCPNetworkEngine;				//网络引擎
 		ITCPSocketService *				m_pITCPSocketService;
 		IGameServiceManager *			m_pIGameServiceManager;				//服务管理

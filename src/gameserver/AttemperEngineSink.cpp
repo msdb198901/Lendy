@@ -7,6 +7,8 @@
 #include "INIReader.h"
 #include "StringUtility.h"
 
+#include "Timer.h"
+
 #define MAX_LINK_COUNT 512
 #define OPEN_SWITCH		1
 #define CLIENT_SWITCH	0
@@ -152,6 +154,7 @@ namespace Game
 		}
 		return false;
 	}
+
 	bool CAttemperEngineSink::OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize)
 	{
 		switch (wControlID)
@@ -172,6 +175,12 @@ namespace Game
 			}
 		}
 		return false;
+	}
+
+	bool CAttemperEngineSink::OnEventTimer(uint32 dwTimerID)
+	{
+		//时间处理
+		return true;
 	}
 
 	bool CAttemperEngineSink::InitTableFrameArray()

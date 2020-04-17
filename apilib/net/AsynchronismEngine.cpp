@@ -68,17 +68,21 @@ namespace Net
 	{
 		if (m_ioContext)
 		{
+			std::lock_guard<std::mutex>	 _lock(m_mutex);
+			if (!m_dataQueue.InsertData(wIdentifier, pData, wDataSize))
 			{
-				std::lock_guard<std::mutex>	 _lock(m_mutex);
-				m_dataQueue.InsertData(wIdentifier, pData, wDataSize);
+				assert(nullptr);
+				return false;
 			}
 
 			Net::post(*m_ioContext, Net::bind_executor(*m_pStrand, [this, wIdentifier, pData, wDataSize]() 
 			{
 				//提取数据
-				std::lock_guard<std::mutex>	 _lock(m_mutex);
+				m_mutex.lock();
 				Util::tagDataHead DataHead;
 				m_dataQueue.DistillData(DataHead, m_cbBuffer, sizeof(m_cbBuffer));
+				m_mutex.unlock();
+
 				m_pIAsynchronismEngineSink->OnAsynchronismEngineData(DataHead.wIdentifier, m_cbBuffer, DataHead.wDataSize);
 			}));
 		}

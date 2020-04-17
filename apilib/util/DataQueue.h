@@ -15,24 +15,21 @@ namespace Util
 
 	class LENDY_COMMON_API DataQueue
 	{
-		//获取位置
+		//查询变量
 	protected:
-		//插入位置
-		uint32							m_dwInsertIndex;
-		//查询位置
-		uint32							m_dwQueryIndex;
-		//尾部位置
-		uint32							m_dwTailIndex;
+		uint32							m_dwInsertPos;					//插入位置
+		uint32							m_dwTerminalPos;				//结束位置
+		uint32							m_dwDataQueryPos;				//查询位置
 
 		//数据变量
 	protected:
-		uint32							m_dwDataSize;						//数据大小
-		uint32							m_dwDataPacketCount;				//数据包数
+		uint32							m_dwDataSize;					//数据大小
+		uint32							m_dwDataPacketCount;			//数据包数
 				
 		//缓冲变量
 	protected:
-		uint32							m_dwQueueSize;					//缓冲长度
-		uint8*							m_pQueueBuffer;					//缓冲指针
+		uint32							m_dwBufferSize;					//缓冲长度
+		uint8*							m_pDataQueueBuffer;				//缓冲指针
 
 		//函数定义
 	public:

@@ -62,6 +62,11 @@ namespace Game
 	{
 		m_ServiceStatus = ServiceStatus_Stop;
 
+		if (m_TimerEngine.GetDLLInterface())
+		{
+			m_TimerEngine->Stop();
+		}
+
 		if (m_AttemperEngine.GetDLLInterface())
 		{
 			m_AttemperEngine->Stop();
@@ -124,6 +129,13 @@ namespace Game
 			++it;
 		}
 
+		//-h 192.168.1.217 - p 7000 - s 1 - t 200 - m 1
+		m_SubGameInfo.strIP = "192.168.1.217";
+		m_SubGameInfo.wPort = 7000;
+		m_SubGameInfo.wKindID = 200;
+		m_SubGameInfo.wThreadCount = 3;
+
+
 		assert(m_SubGameInfo.wKindID != 0);
 		std::string strSection = StringFormat("Game_%d", m_SubGameInfo.wKindID);
 
@@ -181,6 +193,11 @@ namespace Game
 
 	bool ServiceUnits::InitializeService()
 	{
+		if ((m_TimerEngine.GetDLLInterface() == nullptr) && (!m_TimerEngine.CreateInstance()))
+		{
+			return false;
+		}
+
 		if ((m_AttemperEngine.GetDLLInterface() == nullptr) && (!m_AttemperEngine.CreateInstance()))
 		{
 			return false;
@@ -208,6 +225,7 @@ namespace Game
 		IUnknownEx * pIAttemperEngineSink = QUERY_OBJECT_INTERFACE(m_AttemperEngineSink, IUnknownEx);
 
 		//内核组件
+		if (m_TimerEngine->SetTimerEngineEvent(pIAttemperEngine) == false) return false;
 		if (m_TCPNetworkEngine->SetTCPNetworkEngineEvent(pIAttemperEngine) == false) return false;
 		if (m_AttemperEngine->SetNetworkEngine(pITCPNetworkEngine) == false) return false;
 		if (m_AttemperEngine->SetAttemperEngineSink(pIAttemperEngineSink)==false) return false;
@@ -216,7 +234,7 @@ namespace Game
 		if (m_TCPSocketService->SetTCPSocketEvent(pIAttemperEngine) == false) return false;
 
 		m_AttemperEngineSink.m_pGameServiceOption = &m_GameServiceOption;
-
+		m_AttemperEngineSink.m_pITimerEngine = m_TimerEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 		m_AttemperEngineSink.m_pIGameServiceManager = m_GameServiceManager.GetDLLInterface();
@@ -229,6 +247,12 @@ namespace Game
 	}
 	bool ServiceUnits::StartKernelService(Net::IOContext* ioContext)
 	{
+		//时间引擎
+		if (!m_TimerEngine->Start(ioContext))
+		{
+			return false;
+		}
+
 		if (!m_AttemperEngine->Start(ioContext))
 		{
 			return false;

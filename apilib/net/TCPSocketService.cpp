@@ -466,7 +466,7 @@ namespace Net
 				}
 				else if (FD_ISSET(m_hSocket, &exceptset))
 				{
-					printf("11111111\n");
+					//printf("11111111\n");
 					int error = 0;
 					socklen_t len = 128;
 					char sz[128] = {};

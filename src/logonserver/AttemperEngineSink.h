@@ -64,6 +64,11 @@ namespace Logon
 	public:
 		//控制事件
 		virtual bool OnEventControl(uint16 wControlID, void * pData, uint16 wDataSize);
+
+		//内核事件
+	public:
+		//时间事件
+		virtual bool OnEventTimer(uint32 dwTimerID) { return true; }
 		
 		//连接处理
 	protected:

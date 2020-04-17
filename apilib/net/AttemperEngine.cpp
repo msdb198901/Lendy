@@ -70,6 +70,7 @@ namespace Net
 		QUERY_INTERFACE(ITCPNetworkEngineEvent, uuid);
 		QUERY_INTERFACE(IAsynchronismEngineSink, uuid);
 		QUERY_INTERFACE(ITCPSocketEvent, uuid);
+		QUERY_INTERFACE(ITimerEngineEvent, uuid);
 		QUERY_INTERFACE_IUNKNOWNEX(IAttemperEngine, uuid);
 		return nullptr;
 	}
@@ -124,6 +125,19 @@ namespace Net
 
 		//投递数据
 		return m_AsynchronismEngine.PostAsynchronismData(EVENT_CONTROL, m_cbBuffer, sizeof(AS_ControlEvent));
+	}
+
+	bool CAttemperEngine::OnEventTimer(uint32 dwTimerID)
+	{
+		std::lock_guard<std::mutex> _lock(m_mutex);
+
+		AS_TimerEvent * pTimerEvent = (AS_TimerEvent *)m_cbBuffer;
+
+		//构造数据
+		pTimerEvent->dwTimerID = dwTimerID;
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TIMER, m_cbBuffer, sizeof(AS_TimerEvent));
 	}
 
 	bool CAttemperEngine::OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr)
@@ -256,6 +270,18 @@ namespace Net
 		//内核事件
 		switch (wIdentifier)
 		{
+			case EVENT_TIMER:
+			{
+				//大小断言
+				assert(wDataSize == sizeof(AS_TimerEvent));
+				if (wDataSize != sizeof(AS_TimerEvent)) return false;
+
+				//处理消息
+				AS_TimerEvent * pTimerEvent = (AS_TimerEvent *)pData;
+				m_pIAttemperEngineSink->OnEventTimer(pTimerEvent->dwTimerID);
+
+				return true;
+			}
 			case EVENT_CONTROL:
 			{
 				//大小断言

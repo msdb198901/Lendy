@@ -3,11 +3,13 @@
 
 #include "Struct.h"
 #include <map>
+#include <vector>
 
 namespace Logon
 {
-	using namespace comm;
-	typedef std::map<uint16, tagGameServer*>	RoomItemMap;
+	using namespace Comm;
+	typedef std::vector<tagGameRoom*>			FreeRoomItemContainer;
+	typedef std::map<uint16, tagGameRoom*>		RoomItemMap;
 	typedef RoomItemMap::iterator				RIM_IT;
 
 	typedef std::map<uint16, tagGameKind*>		KindItemMap;
@@ -16,8 +18,10 @@ namespace Logon
 	class CRoomListManager
 	{
 	protected:
-		RoomItemMap			m_RoomList;
-		KindItemMap			m_KindList;
+		RoomItemMap					m_RoomList;
+		KindItemMap					m_KindList;
+
+		FreeRoomItemContainer		m_FreeRoomItemArray;
 
 		//函数定义
 	public:
@@ -26,15 +30,22 @@ namespace Logon
 		//析构函数
 		virtual ~CRoomListManager();
 
+	public:
+		//废弃房间
+		void DisuseRoomItem();
+
 		//查找接口
 	public:
 		//查找种类
 		tagGameKind * SearchGameKind(uint16 wKindID);
 
 		//查找房间
-		tagGameServer * SearchRoomServer(uint16 wServerID);
+		tagGameRoom * SearchRoomServer(uint16 wServerID);
 
-		
+		//插入接口
+	public:
+		//插入房间
+		bool InsertGameServer(tagGameRoom * pGameRoom);
 
 	};
 }

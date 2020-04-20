@@ -5,7 +5,7 @@
 
 #pragma pack(1)
 
-namespace comm
+namespace Comm
 {
 	//游戏种类
 	struct tagGameKind
@@ -20,7 +20,7 @@ namespace comm
 	};
 
 	//游戏房间
-	struct tagGameServer
+	struct tagGameRoom
 	{
 		uint16							wKindID;							//名称索引
 		uint16							wSortID;							//排序索引
@@ -28,6 +28,7 @@ namespace comm
 		uint16                          wServerKind;                        //房间类型
 		uint16							wServerLevel;						//房间等级
 		uint16							wServerPort;						//房间端口
+		uint16							wTableCount;						//桌子数
 		uint64							lCellScore;							//单元积分
 		uint64							lEnterScore;						//进入积分
 
@@ -37,8 +38,17 @@ namespace comm
 		uint32							dwAndroidCount;						//机器人数
 		uint32							dwFullCount;						//满员人数
 
-		wchar_t							szServerAddr[32];					//房间名称
-		wchar_t							szServerName[32];					//房间名称
+		char							szServerAddr[32];					//房间名称
+		char							szServerName[32];					//房间名称
+	};
+
+
+	//广场子项
+	struct tagGameLogon
+	{
+		uint16							wPlazaID;							//广场标识
+		char							szServerAddr[32];					//服务地址
+		char							szServerName[32];					//服务器名
 	};
 }
 

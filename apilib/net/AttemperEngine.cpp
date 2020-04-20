@@ -140,7 +140,7 @@ namespace Net
 		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TIMER, m_cbBuffer, sizeof(AS_TimerEvent));
 	}
 
-	bool CAttemperEngine::OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr)
+	bool CAttemperEngine::OnEventTCPNetworkBind(uint32 dwSocketID, uint32 dwClientAddr)
 	{
 		//缓冲锁定
 		std::lock_guard<std::mutex> _lock(m_mutex);
@@ -154,7 +154,7 @@ namespace Net
 		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_ACCEPT, m_cbBuffer, sizeof(AS_TCPNetworkAcceptEvent));
 	}
 
-	bool CAttemperEngine::OnEventTCPNetworkShut(uint64 dwSocketID, uint64 dwClientAddr)
+	bool CAttemperEngine::OnEventTCPNetworkShut(uint32 dwSocketID, uint32 dwClientAddr)
 	{
 		//缓冲锁定
 		std::lock_guard<std::mutex> _lock(m_mutex);
@@ -167,7 +167,8 @@ namespace Net
 		//投递数据
 		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_CLIENT_SHUT, m_cbBuffer, sizeof(AS_TCPNetworkShutEvent));
 	}
-	bool CAttemperEngine::OnEventTCPNetworkRead(uint64 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize)
+
+	bool CAttemperEngine::OnEventTCPNetworkRead(uint32 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize)
 	{
 		assert((wDataSize + sizeof(AS_TCPNetworkReadEvent)) <= SOCKET_TCP_BUFFER);
 		if ((wDataSize + sizeof(AS_TCPNetworkReadEvent)) > SOCKET_TCP_BUFFER) return false;
@@ -206,7 +207,16 @@ namespace Net
 
 	bool CAttemperEngine::OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason)
 	{
-		return false;
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		AS_TCPSocketShutEvent * pConnectEvent = (AS_TCPSocketShutEvent *)m_cbBuffer;
+
+		//构造数据
+		pConnectEvent->wServiceID = wServiceID;
+		pConnectEvent->cbShutReason = cbShutReason;
+
+		//投递数据
+		return m_AsynchronismEngine.PostAsynchronismData(EVENT_TCP_SOCKET_SHUT, m_cbBuffer, sizeof(AS_TCPSocketShutEvent));
 	}
 
 	bool CAttemperEngine::OnEventTCPSocketRead(uint16 wServiceID, TCP_Command Command, void * pData, uint16 wDataSize)
@@ -315,6 +325,18 @@ namespace Net
 
 				return true;
 			}
+			case EVENT_TCP_CLIENT_SHUT:
+			{
+				//大小断言
+				assert(wDataSize == sizeof(AS_TCPNetworkShutEvent));
+				if (wDataSize != sizeof(AS_TCPNetworkShutEvent)) return false;
+
+				//处理消息
+				AS_TCPNetworkShutEvent * pCloseEvent = (AS_TCPNetworkShutEvent *)pData;
+				m_pIAttemperEngineSink->OnEventTCPNetworkShut(pCloseEvent->dwClientAddr, pCloseEvent->dwSocketID);
+
+				return true;
+			}
 			case EVENT_TCP_CLIENT_READ:		//读取事件
 			{
 				//效验大小
@@ -355,6 +377,18 @@ namespace Net
 				//处理消息
 				AS_TCPSocketLinkEvent * pConnectEvent = (AS_TCPSocketLinkEvent *)pData;
 				m_pIAttemperEngineSink->OnEventTCPSocketLink(pConnectEvent->wServiceID, pConnectEvent->iErrorCode);
+
+				return true;
+			}
+			case EVENT_TCP_SOCKET_SHUT:
+			{
+				//大小断言
+				assert(wDataSize == sizeof(AS_TCPSocketShutEvent));
+				if (wDataSize != sizeof(AS_TCPSocketShutEvent)) return false;
+
+				//处理消息
+				AS_TCPSocketShutEvent * pCloseEvent = (AS_TCPSocketShutEvent *)pData;
+				m_pIAttemperEngineSink->OnEventTCPSocketShut(pCloseEvent->wServiceID, pCloseEvent->cbShutReason);
 
 				return true;
 			}

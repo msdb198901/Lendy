@@ -7,7 +7,7 @@
 #include "TCPNetworkThread.h"
 #include "TCPNetworkItem.h"
 
-
+#include <map>
 #include <unordered_map>
 
 namespace Net
@@ -42,7 +42,7 @@ namespace Net
 		//停止事件
 		virtual bool OnAsynchronismEngineConclude() { return true; }
 		//异步数据
-		virtual bool OnAsynchronismEngineData(uint16 wIdentifier, VOID * pData, uint16 wDataSize);
+		virtual bool OnAsynchronismEngineData(uint16 wIdentifier, void * pData, uint16 wDataSize);
 
 	public:
 		//绑定事件
@@ -54,12 +54,18 @@ namespace Net
 
 	public:
 		//发送函数
-		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0);
+		virtual bool SendData(uint32 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0);
+		//批量发送
+		virtual bool SendDataBatch(uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize);
 
 		//控制接口
 	public:
 		//关闭连接
-		virtual bool CloseSocket(uint64 dwSocketID);
+		virtual bool CloseSocket(uint32 dwSocketID);
+		//设置关闭
+		virtual bool ShutDownSocket(uint32 dwSocketID);
+		//允许群发
+		virtual bool AllowBatchSend(uint32 dwSocketID, bool bAllowBatch);
 
 		//服务接口
 	public:
@@ -85,7 +91,7 @@ namespace Net
 		//激活空闲对象
 		std::shared_ptr<CTCPNetworkItem> ActiveNetworkItem(tcp::socket && _socket);
 		//获取对象
-		CTCPNetworkItem* GetNetworkItem(uint16 wIndex);
+		CTCPNetworkItem* GetNetworkItem(uint32 dwSocket);
 		//释放连接对象
 		bool FreeNetworkItem(std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem);
 
@@ -106,7 +112,8 @@ namespace Net
 
 	private:
 		CAsynchronismEngine								m_AsynchronismEngine;				//异步对象
-		std::unordered_map<uint64, CTCPNetworkItem*>	m_NetItemStore;
+		std::unordered_map<uint32, CTCPNetworkItem*>	m_NetItemStore;
+		std::map<uint32, CTCPNetworkItem*>				m_BatchNetItemStore;
 
 		//辅助变量
 	protected:

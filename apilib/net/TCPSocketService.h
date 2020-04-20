@@ -57,6 +57,8 @@ namespace Net
 
 		//辅助函数
 	private:
+		//关闭连接
+		void PerformCloseSocket(uint8 cbShutReason);
 		//发送数据
 		uint64 SendBuffer(void * pBuffer, uint16 wSendSize);
 		//解密数据
@@ -155,6 +157,8 @@ namespace Net
 	protected:
 		//连接消息
 		bool OnSocketLink(int nErrorCode);
+		//关闭消息
+		bool OnSocketShut(uint8 cbShutReason);
 		//连接消息
 		bool OnSocketRead(TCP_Command Command, void * pData, uint16 wDataSize);
 	};

@@ -87,9 +87,9 @@ namespace Correspond
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 
 		if (!m_TCPNetworkEngine->SetServiceParameter(
-			sConfigMgr->Get("Net", "BindIP", "127.0.0.1"), 
-			sConfigMgr->GetInt32("Net", "Port", 8610),
-			sConfigMgr->GetInt32("Net", "Threads", 4)))
+			sConfigMgr->Get("LocalNet", "BindIP", "127.0.0.1"), 
+			sConfigMgr->GetInt32("LocalNet", "Port", 8610),
+			sConfigMgr->GetInt32("LocalNet", "Threads", 4)))
 		{
 			return false;
 		}

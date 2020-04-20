@@ -56,11 +56,11 @@ namespace Game
 		//网络事件
 	public:
 		//应答事件
-		virtual bool OnEventTCPNetworkBind(uint64 dwClientAddr, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkBind(uint32 dwClientAddr, uint32 dwSocketID);
 		//关闭事件
-		virtual bool OnEventTCPNetworkShut(uint64 dwClientAddr, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID);
 		//读取事件
-		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 		//接口事件
 	public:
@@ -86,18 +86,23 @@ namespace Game
 		//手机事件
 	protected:
 		//登录处理
-		bool OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint64 dwSocketID);
+		bool OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 	protected:
 		//游客登录
-		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint64 dwSocketID);
+		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 	protected:
 		//登陆失败
-		bool OnLogonFailure(uint64 dwSocketID, LogonErrorCode &lec);
+		bool OnLogonFailure(uint32 dwSocketID, LogonErrorCode &lec);
+
+		//状态变量
+	protected:
+		bool							m_bNeekCorrespond;					//协调标志
 
 	private:
 		tagBindParameter *				m_pBindParameter;					//辅助数组
+		tagGameAddressOption *			m_pGameAddressOption;				//服务地址
 		tagGameServiceOption *			m_pGameServiceOption;				//服务配置
 
 		//组件接口

@@ -1,21 +1,46 @@
 #include "TCPNetworkEngine.h"
-
+#include <map>
 
 namespace Net
 {
 #define ASYNCHRONISM_SEND_DATA		1									//发送标识
+#define ASYNCHRONISM_SEND_BATCH		2									//群体发送
+#define ASYNCHRONISM_SHUT_DOWN		3									//安全关闭
+#define ASYNCHRONISM_ALLOW_BATCH	4									//允许群发
 #define ASYNCHRONISM_CLOSE_SOCKET	5									//关闭连接
 
 	//关闭连接
 	struct tagCloseSocket
 	{
-		uint16							wIndex;								//连接索引
+		uint32							dwSocketID;							//连接索引
+	};
+
+	//安全关闭
+	struct tagShutDownSocket
+	{
+		uint32							dwSocketID;							//连接索引
+	};
+
+	//允许群发
+	struct tagAllowBatchSend
+	{
+		uint32							dwSocketID;							//连接索引
+		uint8							cbAllowBatch;						//允许标志
+	};
+
+	//群发请求
+	struct tagBatchSendRequest
+	{
+		uint16							wMainCmdID;							//主命令码
+		uint16							wSubCmdID;							//子命令码
+		uint16							wDataSize;							//数据大小
+		uint8							cbSendBuffer[SOCKET_TCP_PACKET];	//发送缓冲
 	};
 
 	//发送请求
 	struct tagSendData
 	{
-		uint16							wIndex;								//连接索引
+		uint32							dwSocketID;							//连接索引
 		uint16							wMainCmdID;							//主命令码
 		uint16							wSubCmdID;							//子命令码
 		uint16							wDataSize;							//数据大小
@@ -90,17 +115,78 @@ namespace Net
 				assert(wDataSize == (pSendDataRequest->wDataSize + sizeof(tagSendData) - sizeof(pSendDataRequest->cbSendBuffer)));
 
 				//获取对象
-				CTCPNetworkItem* pTCPNetworkItem = GetNetworkItem(pSendDataRequest->wIndex);
+				CTCPNetworkItem* pTCPNetworkItem = GetNetworkItem(pSendDataRequest->dwSocketID);
 				if (pTCPNetworkItem == NULL) return false;
 
 				//发送数据
-				std::lock_guard<std::mutex> _lock(m_mutex);
+				std::lock_guard<std::mutex> _lock(pTCPNetworkItem->GetMutex());
 				pTCPNetworkItem->SendData(pSendDataRequest->wMainCmdID, pSendDataRequest->wSubCmdID, pSendDataRequest->cbSendBuffer, pSendDataRequest->wDataSize);
+				return true;
+			}
+			case ASYNCHRONISM_SEND_BATCH:
+			{
+				//效验数据
+				tagBatchSendRequest * pBatchSendRequest = (tagBatchSendRequest *)pData;
+				assert(wDataSize >= (sizeof(tagBatchSendRequest) - sizeof(pBatchSendRequest->cbSendBuffer)));
+				assert(wDataSize == (pBatchSendRequest->wDataSize + sizeof(tagBatchSendRequest) - sizeof(pBatchSendRequest->cbSendBuffer)));
+
+				//群发数据
+				CTCPNetworkItem * pTCPNetworkItem = nullptr;
+				for (std::map<uint32, CTCPNetworkItem*>::iterator it = m_BatchNetItemStore.begin(); it != m_BatchNetItemStore.end(); ++it)
+				{
+					//获取对象
+					pTCPNetworkItem = it->second;
+				
+					//发送数据
+					std::lock_guard<std::mutex> _lock(pTCPNetworkItem->GetMutex());
+					pTCPNetworkItem->SendData(pBatchSendRequest->wMainCmdID, pBatchSendRequest->wSubCmdID, pBatchSendRequest->cbSendBuffer, pBatchSendRequest->wDataSize);
+				}
 				return true;
 			}
 			case ASYNCHRONISM_CLOSE_SOCKET:
 			{
+				//效验数据
+				assert(wDataSize == sizeof(tagCloseSocket));
+				tagCloseSocket * pCloseSocket = (tagCloseSocket *)pData;
+
+				//获取对象
+				CTCPNetworkItem * pTCPNetworkItem = GetNetworkItem(pCloseSocket->dwSocketID);
+				if (pTCPNetworkItem == nullptr) return false;
+
+				//关闭连接
+				std::lock_guard<std::mutex> _lock(pTCPNetworkItem->GetMutex());
+				pTCPNetworkItem->CloseSocket();
+			}
+			case ASYNCHRONISM_SHUT_DOWN:
+			{
+				//效验数据
+				assert(wDataSize == sizeof(tagShutDownSocket));
+				tagShutDownSocket * pShutDownSocket = (tagShutDownSocket *)pData;
+
+				//获取对象
+				CTCPNetworkItem * pTCPNetworkItem = GetNetworkItem(pShutDownSocket->dwSocketID);
+				if (pTCPNetworkItem == NULL) return false;
+
+				//安全关闭
+				std::lock_guard<std::mutex> _lock(pTCPNetworkItem->GetMutex());
+				pTCPNetworkItem->DelayedCloseSocket();
+
 				return true;
+			}
+			case ASYNCHRONISM_ALLOW_BATCH:
+			{
+				//效验数据
+				assert(wDataSize == sizeof(tagAllowBatchSend));
+				tagAllowBatchSend * pAllowBatchSend = (tagAllowBatchSend *)pData;
+
+				//获取对象
+				CTCPNetworkItem * pTCPNetworkItem = GetNetworkItem(pAllowBatchSend->dwSocketID);
+				if (pTCPNetworkItem == nullptr) return false;
+
+				//设置群发
+				std::lock_guard<std::mutex> _lock(pTCPNetworkItem->GetMutex());
+				pTCPNetworkItem->AllowBatchSend(pAllowBatchSend->cbAllowBatch);
+				m_BatchNetItemStore[pTCPNetworkItem->GetIndex()] = pTCPNetworkItem;
 			}
 		}
 		return false;
@@ -138,7 +224,7 @@ namespace Net
 		return true;
 	}
 
-	bool CTCPNetworkEngine::SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize)
+	bool CTCPNetworkEngine::SendData(uint32 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize)
 	{
 		//缓冲锁定
 		std::lock_guard<std::mutex> _lock(m_mutex);
@@ -148,7 +234,7 @@ namespace Net
 		pSendDataRequest->wDataSize = wDataSize;
 		pSendDataRequest->wSubCmdID = wSubCmdID;
 		pSendDataRequest->wMainCmdID = wMainCmdID;
-		pSendDataRequest->wIndex = dwSocketID;
+		pSendDataRequest->dwSocketID = dwSocketID;
 		if (wDataSize > 0)
 		{
 			assert(pData != NULL);
@@ -160,12 +246,55 @@ namespace Net
 		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_SEND_DATA, m_cbBuffer, wSendSize);
 	}
 
-	bool CTCPNetworkEngine::CloseSocket(uint64 dwSocketID)
+	bool CTCPNetworkEngine::SendDataBatch(uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize)
+	{
+		//效验数据
+		assert((wDataSize + sizeof(TCP_Head)) <= SOCKET_TCP_PACKET);
+		if ((wDataSize + sizeof(TCP_Head)) > SOCKET_TCP_PACKET) return false;
+
+		//缓冲锁定
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		tagBatchSendRequest * pBatchSendRequest = (tagBatchSendRequest *)m_cbBuffer;
+
+		//构造数据
+		pBatchSendRequest->wMainCmdID = wMainCmdID;
+		pBatchSendRequest->wSubCmdID = wSubCmdID;
+		pBatchSendRequest->wDataSize = wDataSize;
+
+		if (wDataSize > 0)
+		{
+			assert(pData != nullptr);
+			memcpy(pBatchSendRequest->cbSendBuffer, pData, wDataSize);
+		}
+
+		//发送请求
+		uint16 wSendSize = sizeof(tagBatchSendRequest) - sizeof(pBatchSendRequest->cbSendBuffer) + wDataSize;
+		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_SEND_BATCH, m_cbBuffer, wSendSize);
+	}
+
+	bool CTCPNetworkEngine::CloseSocket(uint32 dwSocketID)
 	{
 		std::lock_guard<std::mutex> _lock(m_mutex);
 		tagCloseSocket *pCloseSocket = (tagCloseSocket*)m_cbBuffer;
-		pCloseSocket->wIndex = dwSocketID;
+		pCloseSocket->dwSocketID = dwSocketID;
 		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_CLOSE_SOCKET, m_cbBuffer, sizeof(tagCloseSocket));
+	}
+
+	bool CTCPNetworkEngine::ShutDownSocket(uint32 dwSocketID)
+	{
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		tagShutDownSocket *pCloseSocket = (tagShutDownSocket*)m_cbBuffer;
+		pCloseSocket->dwSocketID = dwSocketID;
+		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_SHUT_DOWN, m_cbBuffer, sizeof(tagShutDownSocket));
+	}
+
+	bool CTCPNetworkEngine::AllowBatchSend(uint32 dwSocketID, bool bAllowBatch)
+	{
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		tagAllowBatchSend *pAllowBatch = (tagAllowBatchSend*)m_cbBuffer;
+		pAllowBatch->dwSocketID = dwSocketID;
+		pAllowBatch->cbAllowBatch = bAllowBatch;
+		return m_AsynchronismEngine.PostAsynchronismData(ASYNCHRONISM_ALLOW_BATCH, m_cbBuffer, sizeof(tagAllowBatchSend));
 	}
 
 	bool CTCPNetworkEngine::Start(Net::IOContext* ioContext)
@@ -304,24 +433,37 @@ namespace Net
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketBind, this, std::placeholders::_1),
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketShut, this, std::placeholders::_1),
 			//		std::bind(&CTCPNetworkEngine::OnEventSocketRead, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-			m_NetItemStore.insert(std::make_pair(m_curIndex, pTCPNetworkItem.get()));
 			++m_curIndex;
 		}
+
+		m_NetItemStore.insert(std::make_pair(pTCPNetworkItem->GetIndex(), pTCPNetworkItem.get()));
 		return pTCPNetworkItem;
 	}
 
-	CTCPNetworkItem* CTCPNetworkEngine::GetNetworkItem(uint16 wIndex)
+	CTCPNetworkItem* CTCPNetworkEngine::GetNetworkItem(uint32 dwSocket)
 	{
-		auto k = m_NetItemStore.find(wIndex);
+		auto k = m_NetItemStore.find(dwSocket);
 		if (k != m_NetItemStore.end())
 		{
-			return m_NetItemStore[wIndex];
+			return m_NetItemStore[dwSocket];
 		}
 		return nullptr;
 	}
 
 	bool CTCPNetworkEngine::FreeNetworkItem(std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem)
 	{
+		std::unordered_map<uint32, CTCPNetworkItem*>::iterator it = m_NetItemStore.find(pTCPNetworkItem->GetIndex());
+		if (it == m_NetItemStore.end())
+		{
+			assert(nullptr);
+			return false;
+		}
+		std::map<uint32, CTCPNetworkItem*>::iterator itBatch = m_BatchNetItemStore.find(pTCPNetworkItem->GetIndex());
+		if (itBatch != m_BatchNetItemStore.end())
+		{
+			m_BatchNetItemStore.erase(itBatch);
+		}
+		m_NetItemStore.erase(it);
 		m_NetworkFreeItem.push_back(pTCPNetworkItem);
 		return true;
 	}

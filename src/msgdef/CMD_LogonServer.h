@@ -5,7 +5,7 @@
 
 #pragma pack(1)
 
-using namespace comm;
+using namespace Comm;
 
 //µÇÂ¼ÃüÁî
 #define MDM_MB_LOGON				100									//¹ã³¡µÇÂ¼

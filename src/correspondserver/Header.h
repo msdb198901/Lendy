@@ -3,14 +3,4 @@
 
 #include <unordered_map>
 
-namespace Correspond
-{
-	using namespace Net;
-}
-
-namespace Correspond
-{
-
-}
-
 #endif

@@ -1,4 +1,5 @@
 #include "AttemperEngineSink.h"
+#include "Timer.h"
 #include "ServiceUnits.h"
 #include "CMD_LogonServer.h"
 #include "CMD_Correspond.h"
@@ -7,7 +8,6 @@
 #include "INIReader.h"
 #include "StringUtility.h"
 
-#include "Timer.h"
 
 #define MAX_LINK_COUNT 512
 #define OPEN_SWITCH		1
@@ -17,12 +17,18 @@ namespace Game
 {
 	using namespace LogComm;
 
+#define IDI_CONNECT_CORRESPOND		(IDI_MAIN_MODULE_START+3)			//连接时间
+
 #define LOGON_FAILURE(linkid, errorcode) \
 	if (OnLogonFailure(linkid, errorcode)) { \
 		return true;	\
 	}
 
-	CAttemperEngineSink::CAttemperEngineSink()
+	CAttemperEngineSink::CAttemperEngineSink():
+		m_bNeekCorrespond(true),
+		m_pBindParameter(nullptr),
+		m_pGameAddressOption(nullptr),
+		m_pGameServiceOption(nullptr)
 	{
 		
 	}
@@ -69,7 +75,9 @@ namespace Game
 			//错误判断
 			if (iErrorCode != 0)
 			{
-				LOG_INFO("server.game", "协调服务器连接失败 [ %ld ]，%ld 秒后将重新连接", iErrorCode, 5);
+				int iConnectTime = sConfigMgr->GetInt32("LocalNet", "ConnectTime", 5);
+				LOG_INFO("server.game", "Correspond server connection failed [ %d ], will reconnect in %d seconds", iErrorCode, iConnectTime);
+				m_pITimerEngine->SetTimer(IDI_CONNECT_CORRESPOND, iConnectTime * 1000, 1);
 				return false;
 			}
 
@@ -77,19 +85,25 @@ namespace Game
 			LOG_INFO("server.game", "正在注册游戏登录服务器...");
 
 			//变量定义
-			CMD_CS_C_RegisterPlaza RegisterPlaza;
-			memset(&RegisterPlaza, 0, sizeof(RegisterPlaza));
+			CMD_CS_C_RegisterRoom RegisterRoom;
+			memset(&RegisterRoom, 0, sizeof(RegisterRoom));
 
 			//设置变量
-			std::wstring wstrLogon = Util::StringUtility::StringToWString(m_pGameServiceOption->strGameName);
-			swprintf_s(RegisterPlaza.szServerName, L"%s", wstrLogon.c_str());
+			RegisterRoom.wKindID			= m_pGameServiceOption->wKindID;
+			RegisterRoom.wServerID			= m_pGameServiceOption->wServerID;
+			RegisterRoom.wServerPort		= m_pGameServiceOption->wServerPort;
+			RegisterRoom.lCellScore			= m_pGameServiceOption->lCellScore;
+			RegisterRoom.lEnterScore		= m_pGameServiceOption->lMinEnterScore;
+			RegisterRoom.dwOnLineCount		= 0;// m_ServerUserManager.GetUserItemCount();
+			RegisterRoom.dwFullCount		= m_pGameServiceOption->wMaxPlayer;
+			RegisterRoom.wTableCount		= m_pGameServiceOption->wTableCount;
+			RegisterRoom.dwServerRule		= 0;//vCustomRule
 
-			std::string t1 = "192.168.1.217";
-			std::wstring wstrIP = Util::StringUtility::StringToWString(t1);
-			swprintf_s(RegisterPlaza.szServerAddr, L"%s", wstrIP.c_str());
+			sprintf_s(RegisterRoom.szServerName, "%s", m_pGameServiceOption->strGameName);
+			sprintf_s(RegisterRoom.szServerAddr, "%s", m_pGameAddressOption->szIP);
 
 			//发送数据
-			m_pITCPSocketService->SendData(MDM_CS_REGISTER, SUB_CS_C_REGISTER_PLAZA, &RegisterPlaza, sizeof(RegisterPlaza));
+			m_pITCPSocketService->SendData(MDM_CS_REGISTER, SUB_CS_C_REGISTER_ROOM, &RegisterRoom, sizeof(RegisterRoom));
 
 			return true;
 		}
@@ -99,6 +113,23 @@ namespace Game
 
 	bool CAttemperEngineSink::OnEventTCPSocketShut(uint16 wServiceID, uint8 cbShutReason)
 	{
+		//协调连接
+		if (wServiceID == NETWORK_CORRESPOND)
+		{
+			//重连判断
+			if (m_bNeekCorrespond)
+			{
+				//构造提示
+				int iConnectTime = sConfigMgr->GetInt32("LocalNet", "ConnectTime", 5);
+				LOG_INFO("server.game", "The connection to the correspond server is closed and will reconnect in %d seconds", iConnectTime);
+
+				//设置时间
+				assert(m_pITimerEngine != nullptr);
+				m_pITimerEngine->SetTimer(IDI_CONNECT_CORRESPOND, iConnectTime * 1000, 1);
+			}
+			return true;
+		}
+
 		return false;
 	}
 
@@ -113,7 +144,7 @@ namespace Game
 				{
 					return OnTCPSocketMainRegister(Command.wSubCmdID, pData, wDataSize);
 				}
-				case MDM_CS_SERVICE_INFO:	//服务信息
+				case MDM_CS_ROOM_INFO:	//服务信息
 				{
 					return OnTCPSocketMainServiceInfo(Command.wSubCmdID, pData, wDataSize);
 				}
@@ -122,7 +153,7 @@ namespace Game
 		return false;
 	}
 
-	bool CAttemperEngineSink::OnEventTCPNetworkBind(uint64 dwClientAddr, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnEventTCPNetworkBind(uint32 dwClientAddr, uint32 dwSocketID)
 	{
 		//获取索引
 		assert(dwSocketID < MAX_LINK_COUNT);
@@ -137,13 +168,13 @@ namespace Game
 		return true;
 	}
 
-	bool CAttemperEngineSink::OnEventTCPNetworkShut(uint64 dwClientAddr, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID)
 	{
 		memset((m_pBindParameter + dwSocketID), 0, sizeof(tagBindParameter));
 		return true;
 	}
 
-	bool CAttemperEngineSink::OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
 		switch (Command.wMainCmdID)
 		{
@@ -170,7 +201,7 @@ namespace Game
 			case SUC_CONNECT_CORRESPOND:
 			{
 				//发起连接
-				m_pITCPSocketService->Connect(sConfigMgr->Get("Net", "BindIP", "127.0.0.1"), sConfigMgr->GetInt32("Net", "Port", 8600));
+				m_pITCPSocketService->Connect(sConfigMgr->Get("CorrespondNet", "BindIP", "127.0.0.1"), sConfigMgr->GetInt32("CorrespondNet", "Port", 8600));
 				return true;
 			}
 		}
@@ -180,7 +211,18 @@ namespace Game
 	bool CAttemperEngineSink::OnEventTimer(uint32 dwTimerID)
 	{
 		//时间处理
-		return true;
+		switch (dwTimerID)
+		{
+			case IDI_CONNECT_CORRESPOND:
+			{
+				std::string strCorrespondAddress = sConfigMgr->Get("CorrespondNet", "BindIP", "127.0.0.1");
+				uint16 wCorrespondPort = sConfigMgr->GetInt32("CorrespondNet", "Port", 8600);
+				m_pITCPSocketService->Connect(strCorrespondAddress, wCorrespondPort);
+				LOG_INFO("server.game", "Connecting to the correspond server [ %s:%d ]", strCorrespondAddress, wCorrespondPort);
+				return true;
+			}
+		}
+		return false;
 	}
 
 	bool CAttemperEngineSink::InitTableFrameArray()
@@ -228,18 +270,16 @@ namespace Game
 				if (wDataSize < (sizeof(CMD_CS_S_RegisterFailure) - sizeof(pRegisterFailure->szDescribeString))) return false;
 
 				//关闭处理
-				//m_bNeekCorrespond = false;
+				m_bNeekCorrespond = false;
 				m_pITCPSocketService->CloseSocket();
 
 				//显示消息
-				std::string strResult = Util::StringUtility::WStringToString(pRegisterFailure->szDescribeString);
-
-				LOG_INFO("server.game", "%d", strResult.c_str());
+				LOG_INFO("server.game", "%s", pRegisterFailure->szDescribeString);
 
 				//事件通知
-				//CP_ControlResult ControlResult;
-				//ControlResult.cbSuccess = ER_FAILURE;
-				//SendUIControlPacket(UI_CORRESPOND_RESULT, &ControlResult, sizeof(ControlResult));
+				ControlResult ControlResult;
+				ControlResult.cbSuccess = 0;
+				SrvUnitsMgr->PostControlRequest(UDC_CORRESPOND_RESULT, &ControlResult, sizeof(ControlResult));
 				return true;
 			}
 		}
@@ -251,11 +291,11 @@ namespace Game
 	{
 		switch (wSubCmdID)
 		{
-			case SUB_CS_S_SERVER_INFO:		//房间信息
+			case SUB_CS_S_ROOM_INFO:		//房间信息
 			{
 				return true;
 			}
-			case SUB_CS_S_SERVER_ONLINE:	//房间人数
+			case SUB_CS_S_ROOM_ONLINE:	//房间人数
 			{
 				//效验参数
 				assert(wDataSize == sizeof(CMD_CS_S_ServerOnLine));
@@ -265,11 +305,11 @@ namespace Game
 				CMD_CS_S_ServerOnLine * pServerOnLine = (CMD_CS_S_ServerOnLine *)pData;
 				return true;
 			}
-			case SUB_CS_S_SERVER_INSERT:	//房间插入
+			case SUB_CS_S_ROOM_INSERT:	//房间插入
 			{
 				return true;
 			}
-			case SUB_CS_S_SERVER_FINISH:	//房间完成
+			case SUB_CS_S_ROOM_FINISH:	//房间完成
 			{
 				//事件处理
 				ControlResult ControlResult;
@@ -281,18 +321,18 @@ namespace Game
 		return false;
 	}
 
-	bool CAttemperEngineSink::OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
 		switch (wSubCmdID)
 		{
-		case SUB_MB_LOGON_VISITOR:      //游客登录
-		{
-			return OnTCPNetworkSubMBLogonVisitor(pData, wDataSize, dwSocketID);
-		}
+			case SUB_MB_LOGON_VISITOR:      //游客登录
+			{
+				return OnTCPNetworkSubMBLogonVisitor(pData, wDataSize, dwSocketID);
+			}
 		}
 		return false;
 	}
-	bool CAttemperEngineSink::OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
 		//效验参数
 		assert(wDataSize >= sizeof(CMD_MB_LogonVisitor));
@@ -432,7 +472,7 @@ namespace Game
 		return true;
 	}
 	
-	bool CAttemperEngineSink::OnLogonFailure(uint64 dwSocketID, LogonErrorCode & lec)
+	bool CAttemperEngineSink::OnLogonFailure(uint32 dwSocketID, LogonErrorCode & lec)
 	{
 		if (lec == LEC_NONE)
 		{

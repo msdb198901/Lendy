@@ -102,45 +102,48 @@ namespace Game
 			if (*it == "-h")
 			{
 				++it;
-				m_SubGameInfo.strIP = *it;
-				LOG_INFO("server.game", "host:%s", m_SubGameInfo.strIP.c_str());
+				sprintf_s(m_GameAddressOption.szIP, "%s", (*it).c_str());
+				//sprintf_s(m_GameAddressOption.szIP, "%s", (*it).c_str());
+				LOG_INFO("server.game", "Host:%s", m_GameAddressOption.szIP);
 			}
 			//Port
 			else if (*it == "-p")
 			{
 				++it;
-				m_SubGameInfo.wPort = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
-				LOG_INFO("server.game", "port:%i", m_SubGameInfo.wPort);
+				m_GameAddressOption.wPort = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
+				LOG_INFO("server.game", "Port:%i", m_GameAddressOption.wPort);
 			}
 			//KindID
 			else if (*it == "-k")
 			{
 				++it;
-				m_SubGameInfo.wKindID = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
-				LOG_INFO("server.game", "kindid:%i", m_SubGameInfo.wKindID);
+				m_GameAddressOption.wKindID = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
+				LOG_INFO("server.game", "KindID:%i", m_GameAddressOption.wKindID);
 			}
 			//ThreadCount
 			else if (*it == "-t")
 			{
 				++it;
-				m_SubGameInfo.wThreadCount = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
-				LOG_INFO("server.game", "threadcount:%i", m_SubGameInfo.wThreadCount);
+				m_GameAddressOption.wThreadCount = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
+				LOG_INFO("server.game", "ThreadCount:%i", m_GameAddressOption.wThreadCount);
 			}
 			++it;
 		}
 
 		//-h 192.168.1.217 - p 7000 - s 1 - t 200 - m 1
-		m_SubGameInfo.strIP = "192.168.1.217";
-		m_SubGameInfo.wPort = 7000;
-		m_SubGameInfo.wKindID = 200;
-		m_SubGameInfo.wThreadCount = 3;
+		if (argc <= 1)
+		{
+			sprintf_s(m_GameAddressOption.szIP, "192.168.1.217");
+			m_GameAddressOption.wPort = 7000;
+			m_GameAddressOption.wKindID = 104;
+			m_GameAddressOption.wThreadCount = 3;
+		}
+		
+		assert(m_GameAddressOption.wKindID != 0);
+		std::string strSection = StringFormat("Game_%d", m_GameAddressOption.wKindID);
 
-
-		assert(m_SubGameInfo.wKindID != 0);
-		std::string strSection = StringFormat("Game_%d", m_SubGameInfo.wKindID);
-
-		m_GameServiceOption.wKindID = m_SubGameInfo.wKindID;
-		m_GameServiceOption.wServerPort = m_SubGameInfo.wPort;
+		m_GameServiceOption.wKindID = m_GameAddressOption.wKindID;
+		m_GameServiceOption.wServerPort = m_GameAddressOption.wPort;
 		m_GameServiceOption.wServerID = sConfigMgr->GetInt32(strSection, "ServerID", 0);
 		m_GameServiceOption.wTableCount = sConfigMgr->GetUInt64(strSection, "TableCount", 0);
 		m_GameServiceOption.wChairCount = sConfigMgr->GetInt32(strSection, "ChairCount", 0);
@@ -234,12 +237,13 @@ namespace Game
 		if (m_TCPSocketService->SetTCPSocketEvent(pIAttemperEngine) == false) return false;
 
 		m_AttemperEngineSink.m_pGameServiceOption = &m_GameServiceOption;
+		m_AttemperEngineSink.m_pGameAddressOption = &m_GameAddressOption;
 		m_AttemperEngineSink.m_pITimerEngine = m_TimerEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 		m_AttemperEngineSink.m_pIGameServiceManager = m_GameServiceManager.GetDLLInterface();
 
-		if (!m_TCPNetworkEngine->SetServiceParameter(m_SubGameInfo.strIP,m_SubGameInfo.wPort,m_SubGameInfo.wThreadCount))
+		if (!m_TCPNetworkEngine->SetServiceParameter(m_GameAddressOption.szIP, m_GameAddressOption.wPort, m_GameAddressOption.wThreadCount))
 		{
 			return false;
 		}
@@ -273,6 +277,8 @@ namespace Game
 			{
 				return false;
 			}
+			std::string strSection = StringFormat("Game_%d", m_GameAddressOption.wKindID);
+			LOG_INFO("server.game", "[ %s ] ÓÎÏ·Æô¶¯µØÖ· [ %s:%d ]", sConfigMgr->Get(strSection, "GameName", "").c_str(), m_GameAddressOption.szIP, m_GameAddressOption.wPort);
 			return true;
 		};
 		return true;

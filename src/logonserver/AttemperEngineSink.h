@@ -54,11 +54,11 @@ namespace Logon
 		//网络事件
 	public:
 		//应答事件
-		virtual bool OnEventTCPNetworkBind(uint64 dwClientAddr, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkBind(uint32 dwClientAddr, uint32 dwSocketID);
 		//关闭事件
-		virtual bool OnEventTCPNetworkShut(uint64 dwClientAddr, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID);
 		//读取事件
-		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 		//接口事件
 	public:
@@ -68,7 +68,7 @@ namespace Logon
 		//内核事件
 	public:
 		//时间事件
-		virtual bool OnEventTimer(uint32 dwTimerID) { return true; }
+		virtual bool OnEventTimer(uint32 dwTimerID);
 		
 		//连接处理
 	protected:
@@ -80,21 +80,22 @@ namespace Logon
 		//手机事件
 	protected:
 		//登录处理
-		bool OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint64 dwSocketID);
+		bool OnTCPNetworkMainMBLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 	protected:
 		//游客登录
-		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint64 dwSocketID);
+		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 	protected:
 		//登陆失败
-		bool OnLogonFailure(uint64 dwSocketID, LogonErrorCode &lec);
+		bool OnLogonFailure(uint32 dwSocketID, LogonErrorCode &lec);
 
 	private:
 		tagBindParameter *				m_pBindParameter;					//辅助数组
 
 		//组件接口
 	protected:
+		ITimerEngine *					m_pITimerEngine;					//时间引擎
 		ITCPNetworkEngine *				m_pITCPNetworkEngine;				//网络引擎
 		ITCPSocketService *				m_pITCPSocketService;
 

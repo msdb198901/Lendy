@@ -8,6 +8,7 @@ namespace Net
 		std::function<bool(CTCPNetworkItem *)> socketShutCallBack,
 		std::function<bool(TCP_Command, void*, uint16, CTCPNetworkItem*)> socketReadCallBack*/) :
 		m_index(index),
+		m_bAllowBatch(false),
 		m_socket(std::move(socket)),
 		m_pITCPNetworkItemSink(pITCPNetworkItemSink),
 		m_remoteAddress(m_socket.remote_endpoint().address()),
@@ -53,6 +54,7 @@ namespace Net
 
 	void CTCPNetworkItem::Attach(tcp::socket && socket)
 	{
+		m_bAllowBatch = false;
 		m_socket = std::move(socket);
 		m_remoteAddress = m_socket.remote_endpoint().address();
 		m_remotePort = m_socket.remote_endpoint().port();
@@ -104,7 +106,7 @@ namespace Net
 		}
 
 		//加密数据
-		uint16 wEncryptLen = EncryptBuffer(buff.GetWritePointer(), wDataSize, buff.GetBufferSize());
+		uint16 wEncryptLen = EncryptBuffer(buff.GetWritePointer(), wPacketSize, buff.GetBufferSize());
 		buff.WriteCompleted(wEncryptLen);
 		QueuePacket(std::move(buff));
 		return true;
@@ -144,6 +146,17 @@ namespace Net
 	void CTCPNetworkItem::DelayedCloseSocket()
 	{
 		m_closing = true;
+	}
+
+	bool CTCPNetworkItem::AllowBatchSend(bool cbAllowBatch)
+	{
+		if (!IsOpen())
+		{
+			return false;
+		}
+
+		m_bAllowBatch = cbAllowBatch;
+		return true;
 	}
 
 	MessageBuffer & CTCPNetworkItem::GetReadBuffer()
@@ -261,7 +274,8 @@ namespace Net
 		//效验参数
 		assert(wDataSize >= sizeof(TCP_Head));
 		assert(wDataSize <= (sizeof(TCP_Head) + SOCKET_TCP_BUFFER));
-		assert(wBufferSize >= (wDataSize + 2 * sizeof(DWORD)));
+		(void)wBufferSize;
+		//assert(wBufferSize >= (wDataSize + 2 * sizeof(DWORD)));
 
 		//填写信息头
 		TCP_Head * pHead = (TCP_Head *)pcbDataBuffer;

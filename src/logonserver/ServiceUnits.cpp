@@ -67,6 +67,11 @@ namespace Logon
 	{
 		m_ServiceStatus = ServiceStatus_Stop;
 
+		if (m_TimerEngine.GetDLLInterface())
+		{
+			m_TimerEngine->Stop();
+		}
+
 		if (m_AttemperEngine.GetDLLInterface())
 		{
 			m_AttemperEngine->Stop();
@@ -93,6 +98,11 @@ namespace Logon
 
 	bool ServiceUnits::InitializeService()
 	{
+		if ((m_TimerEngine.GetDLLInterface() == nullptr) && (!m_TimerEngine.CreateInstance()))
+		{
+			return false;
+		}
+
 		if ((m_AttemperEngine.GetDLLInterface() == nullptr) && (!m_AttemperEngine.CreateInstance()))
 		{
 			return false;
@@ -114,6 +124,7 @@ namespace Logon
 		IUnknownEx * pIAttemperEngineSink = QUERY_OBJECT_INTERFACE(m_AttemperEngineSink, IUnknownEx);
 
 		//内核组件
+		if (m_TimerEngine->SetTimerEngineEvent(pIAttemperEngine) == false) return false;
 		if (m_TCPNetworkEngine->SetTCPNetworkEngineEvent(pIAttemperEngine) == false) return false;
 		if (m_AttemperEngine->SetNetworkEngine(pITCPNetworkEngine) == false) return false;
 		if (m_AttemperEngine->SetAttemperEngineSink(pIAttemperEngineSink)==false) return false;
@@ -121,13 +132,14 @@ namespace Logon
 		if (m_TCPSocketService->SetServiceID(NETWORK_CORRESPOND) == false) return false;
 		if (m_TCPSocketService->SetTCPSocketEvent(pIAttemperEngine) == false) return false;
 
+		m_AttemperEngineSink.m_pITimerEngine = m_TimerEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 
 		if (!m_TCPNetworkEngine->SetServiceParameter(
-			sConfigMgr->Get("Net", "BindIP", "127.0.0.1"),
-			sConfigMgr->GetInt32("Net", "Port", 8600),
-			sConfigMgr->GetInt32("Net", "Threads", 4)))
+			sConfigMgr->Get("LocalNet", "BindIP", "127.0.0.1"),
+			sConfigMgr->GetInt32("LocalNet", "Port", 8600),
+			sConfigMgr->GetInt32("LocalNet", "Threads", 4)))
 		{
 			return false;
 		}
@@ -136,6 +148,12 @@ namespace Logon
 	}
 	bool ServiceUnits::StartKernelService(Net::IOContext* ioContext)
 	{
+		//时间引擎
+		if (!m_TimerEngine->Start(ioContext))
+		{
+			return false;
+		}
+
 		if (!m_AttemperEngine->Start(ioContext))
 		{
 			return false;

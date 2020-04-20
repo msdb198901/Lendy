@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	//	return -1;
 	//}
 	
-	LOG_INFO("server.logon", "登录服务器启动");
+	LOG_INFO("server.game", "游戏服务器启动");
 	
 	std::shared_ptr<Net::IOContext> ioContext = std::make_shared<Net::IOContext>();
 

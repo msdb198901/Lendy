@@ -8,6 +8,23 @@
 
 namespace Net
 {
+#define REQUEST_CONNECT				1									//请求连接
+#define REQUEST_SEND_DATA			2									//请求发送
+#define REQUEST_CLOSE_SOCKET		4									//请求关闭
+
+	//连接错误
+#define CONNECT_SUCCESS				0									//连接成功
+#define CONNECT_FAILURE				1									//连接失败
+#define CONNECT_EXCEPTION			2									//参数异常
+
+
+	//关闭原因
+#define SHUT_REASON_INSIDE			0									//内部原因
+#define SHUT_REASON_NORMAL			1									//正常关闭
+#define SHUT_REASON_REMOTE			2									//远程关闭
+#define SHUT_REASON_TIME_OUT		3									//网络超时
+#define SHUT_REASON_EXCEPTION		4									//异常关闭
+
 #define IS_SS_RUN \
 	bool bRun = m_TCPSocketServiceThread.IsStart(); \
 	assert(bRun);	\
@@ -21,16 +38,6 @@ namespace Net
 #define CONTAINING_RECORD(address, type, field) ((type *)( \
                                                   (PCHAR)(address) - \
                                                   (ULONG_PTR)(&((type *)0)->field)))
-
-#define REQUEST_CONNECT				1									//请求连接
-#define REQUEST_SEND_DATA			2									//请求发送
-#define REQUEST_CLOSE_SOCKET		4									//请求关闭
-
-//连接错误
-#define CONNECT_SUCCESS				0									//连接成功
-#define CONNECT_FAILURE				1									//连接失败
-#define CONNECT_EXCEPTION			2									//参数异常
-
 	//连接请求
 	struct tagConnectRequest
 	{
@@ -312,7 +319,7 @@ namespace Net
 		catch (...)
 		{
 			//关闭连接
-			//PerformCloseSocket(true);
+			PerformCloseSocket(SHUT_REASON_NORMAL);
 		}
 		return true;
 	}
@@ -320,6 +327,25 @@ namespace Net
 	bool Net::CTCPSocketServiceThread::OnSocketNotifyWrite()
 	{
 		return false;
+	}
+
+	void Net::CTCPSocketServiceThread::PerformCloseSocket(uint8 cbShutReason)
+	{
+		//关闭判断
+		if (m_hSocket != INVALID_SOCKET)
+		{
+			//关闭连接
+			closesocket(m_hSocket);
+			m_hSocket = INVALID_SOCKET;
+
+			//关闭通知
+			if (cbShutReason != SHUT_REASON_INSIDE)
+			{
+				CTCPSocketService * pTCPSocketStatusService = CONTAINING_RECORD(this, CTCPSocketService, m_TCPSocketServiceThread);
+				pTCPSocketStatusService->OnSocketShut(cbShutReason);
+			}
+		}
+		return;
 	}
 
 	uint64 Net::CTCPSocketServiceThread::SendBuffer(void * pBuffer, uint16 wSendSize)
@@ -436,6 +462,8 @@ namespace Net
 
 			while (true)
 			{
+				if (m_hSocket == INVALID_SOCKET) break;
+
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 				Sleep(100);
 #else
@@ -602,8 +630,15 @@ namespace Net
 	bool CTCPSocketService::OnSocketLink(int nErrorCode)
 	{
 		//投递事件
-		assert(m_pITCPSocketEvent != NULL);
+		assert(m_pITCPSocketEvent != nullptr);
 		return m_pITCPSocketEvent->OnEventTCPSocketLink(m_wServiceID, nErrorCode);
+	}
+
+	bool Net::CTCPSocketService::OnSocketShut(uint8 cbShutReason)
+	{
+		//投递事件
+		assert(m_pITCPSocketEvent != nullptr);
+		return m_pITCPSocketEvent->OnEventTCPSocketShut(m_wServiceID, cbShutReason);
 	}
 
 	//读取消息

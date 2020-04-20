@@ -77,6 +77,7 @@ namespace Logon
 		CAttemperEngineSink					m_AttemperEngineSink;				//调度钩子
 
 	private:
+		CTimerEngineHelper					m_TimerEngine;						//时间引擎
 		CAttemperEngineHelper				m_AttemperEngine;					//调度引擎
 		CTCPNetworkEngineHelper				m_TCPNetworkEngine;
 		CTCPSocketServiceHelper				m_TCPSocketService;					//服务通讯

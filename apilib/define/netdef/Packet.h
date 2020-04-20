@@ -83,23 +83,23 @@ namespace Net
 	//应答事件
 	struct AS_TCPNetworkAcceptEvent
 	{
-		uint64							dwSocketID;							//网络标识
-		uint64							dwClientAddr;						//连接地址
+		uint32							dwSocketID;							//网络标识
+		uint32							dwClientAddr;						//连接地址
 	};
 
 	//读取事件
 	struct AS_TCPNetworkReadEvent
 	{
 		uint16							wDataSize;							//数据大小
-		uint64							dwSocketID;							//网络标识
+		uint32							dwSocketID;							//网络标识
 		TCP_Command						Command;							//命令信息
 	};
 
 	//关闭事件
 	struct AS_TCPNetworkShutEvent
 	{
-		uint64							dwSocketID;							//网络标识
-		uint64							dwClientAddr;						//连接地址
+		uint32							dwSocketID;							//网络标识
+		uint32							dwClientAddr;						//连接地址
 	};
 
 	//连接事件
@@ -107,6 +107,13 @@ namespace Net
 	{
 		int								iErrorCode;							//错误代码
 		uint16							wServiceID;							//服务标识
+	};
+
+	//关闭事件
+	struct AS_TCPSocketShutEvent
+	{
+		uint16							wServiceID;							//服务标识
+		uint8							cbShutReason;						//关闭原因
 	};
 
 	//读取事件

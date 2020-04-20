@@ -6,7 +6,7 @@
 
 namespace LogComm
 {
-	using namespace comm;
+	using namespace Comm;
 	LogFile::LogFile(std::string extraArgs) : 
 		m_logfile(nullptr), 
 		m_logDir(sLogMgr->GetLogDir()), 

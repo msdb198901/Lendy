@@ -17,6 +17,9 @@ namespace Game
 {
 #define NETWORK_CORRESPOND			1									//登录连接
 
+#define IDI_MAIN_MODULE_START		1									//起始标识
+#define IDI_MAIN_MODULE_FINISH		99									//终止标识
+
 	enum ServiceUnitsControl
 	{
 		SUC_CONNECT_CORRESPOND  = 1,
@@ -38,13 +41,13 @@ namespace Game
 		LEC_MAX_CODE
 	};
 
-	typedef std::pair<LogonErrorCode, std::string> K;
+	typedef std::pair<LogonErrorCode, std::string> K_LE;
 	typedef std::unordered_map<LogonErrorCode, std::string> LogonErrorContainer;
 	static LogonErrorContainer LogonError =
 	{
-		K(LEC_LIMIT_IP, "抱歉地通知您，系统禁止了您所在的 IP 地址的登录功能，请联系客户服务中心了解详细情况！"),
-		K(LEC_LIMIT_MAC, "抱歉地通知您，系统禁止了您的机器的登录功能，请联系客户服务中心了解详细情况！"),
-		K(LEC_LIMIT_FREEZE, "您的帐号暂时处于冻结状态，请联系客户服务中心了解详细情况！")
+		K_LE(LEC_LIMIT_IP, "抱歉地通知您，系统禁止了您所在的 IP 地址的登录功能，请联系客户服务中心了解详细情况！"),
+		K_LE(LEC_LIMIT_MAC, "抱歉地通知您，系统禁止了您的机器的登录功能，请联系客户服务中心了解详细情况！"),
+		K_LE(LEC_LIMIT_FREEZE, "您的帐号暂时处于冻结状态，请联系客户服务中心了解详细情况！")
 	};
 
 	//控制结果
@@ -53,10 +56,9 @@ namespace Game
 		uint8							cbSuccess;							//成功标志
 	};
 
-	struct tagSubGameInfo
+	struct tagGameAddressOption
 	{
-		std::string						strSection;
-		std::string						strIP;
+		char							szIP[32];
 		uint16							wPort;
 		uint16							wKindID;
 		uint16							wThreadCount;

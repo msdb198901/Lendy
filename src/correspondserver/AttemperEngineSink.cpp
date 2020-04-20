@@ -2,6 +2,7 @@
 #include "ServiceUnits.h"
 #include "CMD_Correspond.h"
 #include "Log.h"
+#include "Struct.h"
 #include "StringUtility.h"
 
 #define MAX_LINK_COUNT 512
@@ -10,6 +11,7 @@
 
 namespace Correspond
 {
+	//using namespace Comm;
 	using namespace LogComm;
 
 	CAttemperEngineSink::CAttemperEngineSink()
@@ -60,7 +62,7 @@ namespace Correspond
 		return true;
 	}
 
-	bool CAttemperEngineSink::OnEventTCPNetworkBind(uint64 dwClientAddr, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnEventTCPNetworkBind(uint32 dwClientAddr, uint32 dwSocketID)
 	{
 		//获取索引
 		assert(dwSocketID < MAX_LINK_COUNT);
@@ -75,19 +77,41 @@ namespace Correspond
 		return true;
 	}
 
-	bool CAttemperEngineSink::OnEventTCPNetworkShut(uint64 dwClientAddr, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID)
 	{
+		//获取信息
+		uint16 wBindIndex = LOWORD(dwSocketID);
+		tagBindParameter * pBindParameter = (m_pBindParameter + wBindIndex);
+
+		//游戏服务
+		if (pBindParameter->ServiceKind == ServiceKind_Game)
+		{
+		}
+
+		//广场服务
+		if (pBindParameter->ServiceKind == ServiceKind_Plaza)
+		{
+			m_GlobalInfoManager.DeleteLogonItem(pBindParameter->wServiceID);
+		}
+
+		//聊天服务
+		if (pBindParameter->ServiceKind == ServiceKind_Chat)
+		{
+		}
+
+		//清除信息
+		memset(pBindParameter, 0, sizeof(tagBindParameter));
 		return true;
 	}
 
-	bool CAttemperEngineSink::OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID)
+	bool CAttemperEngineSink::OnEventTCPNetworkRead(TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
 		switch (Command.wMainCmdID)
 		{
-		case MDM_CS_REGISTER:		//服务注册
-		{
-			return OnTCPNetworkMainRegister(Command.wSubCmdID, pData, wDataSize, dwSocketID);
-		}
+			case MDM_CS_REGISTER:		//服务注册
+			{
+				return OnTCPNetworkMainRegister(Command.wSubCmdID, pData, wDataSize, dwSocketID);
+			}
 		}
 		return false;
 	}
@@ -96,93 +120,183 @@ namespace Correspond
 		return false;
 	}
 
-	bool CAttemperEngineSink::OnTCPNetworkMainRegister(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID)
+	bool CAttemperEngineSink::OnTCPNetworkMainRegister(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
 		switch (wSubCmdID)
 		{
-		case SUB_CS_C_REGISTER_PLAZA:	//注册广场
+			case SUB_CS_C_REGISTER_LOGON:	//注册广场
+			{
+				//效验数据
+				assert(wDataSize == sizeof(CMD_CS_C_RegisterLogon));
+				if (wDataSize != sizeof(CMD_CS_C_RegisterLogon)) return false;
+
+				//消息定义
+				CMD_CS_C_RegisterLogon * pRegisterLogon = (CMD_CS_C_RegisterLogon *)pData;
+
+				//有效判断
+				if ((pRegisterLogon->szServerName[0] == 0) || (pRegisterLogon->szServerAddr[0] == 0))
+				{
+					//变量定义
+					CMD_CS_S_RegisterFailure RegisterFailure;
+					memset(&RegisterFailure, 0, sizeof(RegisterFailure));
+
+					//设置变量
+					RegisterFailure.lErrorCode = 0L;
+					sprintf_s(RegisterFailure.szDescribeString, "服务器注册失败，“服务地址”与“服务器名”不合法！");
+
+					//发送消息
+					uint16 wStringSize = strlen(RegisterFailure.szDescribeString) + 1;
+					uint16 wSendSize = sizeof(RegisterFailure) - sizeof(RegisterFailure.szDescribeString) + wStringSize;
+					m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_REGISTER, SUB_CS_S_REGISTER_FAILURE, &RegisterFailure, wSendSize);
+
+					//中断网络
+					m_pITCPNetworkEngine->ShutDownSocket(dwSocketID);
+					return true;
+				}
+
+				//设置绑定
+				uint16 wBindIndex = LOWORD(dwSocketID);
+				(m_pBindParameter + wBindIndex)->wServiceID = wBindIndex;
+				(m_pBindParameter + wBindIndex)->ServiceKind = ServiceKind_Plaza;
+
+				//变量定义
+				tagGameLogon GameLogon;
+				memset(&GameLogon, 0, sizeof(GameLogon));
+
+				//构造数据
+				GameLogon.wPlazaID = wBindIndex;
+				sprintf_s(GameLogon.szServerName, pRegisterLogon->szServerName, sizeof(GameLogon.szServerName));
+				sprintf_s(GameLogon.szServerAddr, pRegisterLogon->szServerAddr, sizeof(GameLogon.szServerAddr));
+
+				//注册房间
+				m_GlobalInfoManager.ActiveLogonItem(wBindIndex, GameLogon);
+
+				//发送列表
+				SendRoomListToLogon(dwSocketID);
+
+				//群发设置
+				m_pITCPNetworkEngine->AllowBatchSend(dwSocketID, true);
+
+				return true;
+			}
+			case SUB_CS_C_REGISTER_ROOM:
+			{
+				//效验数据
+				assert(wDataSize == sizeof(CMD_CS_C_RegisterRoom));
+				if (wDataSize != sizeof(CMD_CS_C_RegisterRoom)) return false;
+
+				//消息定义
+				CMD_CS_C_RegisterRoom * pRegisterRoom = (CMD_CS_C_RegisterRoom *)pData;
+
+				//查找房间
+				if (m_GlobalInfoManager.SearchRoomItem(pRegisterRoom->wServerID) != nullptr)
+				{
+					//变量定义
+					CMD_CS_S_RegisterFailure RegisterFailure;
+					memset(&RegisterFailure, 0, sizeof(RegisterFailure));
+
+					//设置变量
+					RegisterFailure.lErrorCode = 0L;
+					sprintf_s(RegisterFailure.szDescribeString, "已经存在相同标识的游戏房间服务，房间服务注册失败");
+
+					//发送消息
+					uint16 wStringSize = strlen(RegisterFailure.szDescribeString) + 1;
+					uint16 wSendSize = sizeof(RegisterFailure) - sizeof(RegisterFailure.szDescribeString) + wStringSize;
+					m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_REGISTER, SUB_CS_S_REGISTER_FAILURE, &RegisterFailure, wSendSize);
+
+					//中断网络
+					m_pITCPNetworkEngine->ShutDownSocket(dwSocketID);
+
+					return true;
+				}
+
+				//设置绑定
+				WORD wBindIndex = LOWORD(dwSocketID);
+				(m_pBindParameter + wBindIndex)->ServiceKind = ServiceKind_Game;
+				(m_pBindParameter + wBindIndex)->wServiceID = pRegisterRoom->wServerID;
+
+				tagGameRoom GameRoom;
+				memset(&GameRoom, 0, sizeof(tagGameRoom));
+
+				GameRoom.wKindID = pRegisterRoom->wKindID;
+				GameRoom.wServerID = pRegisterRoom->wServerID;
+				GameRoom.wServerPort = pRegisterRoom->wServerPort;
+				GameRoom.lCellScore = pRegisterRoom->lCellScore;
+				GameRoom.lEnterScore = pRegisterRoom->lEnterScore;
+				GameRoom.dwOnLineCount = pRegisterRoom->dwOnLineCount;
+				GameRoom.dwFullCount = pRegisterRoom->dwFullCount;
+				GameRoom.wTableCount = pRegisterRoom->wTableCount;
+				GameRoom.dwServerRule = pRegisterRoom->dwServerRule;
+				sprintf_s(GameRoom.szServerAddr, pRegisterRoom->szServerAddr, sizeof(GameRoom.szServerAddr));
+				sprintf_s(GameRoom.szServerName, pRegisterRoom->szServerName, sizeof(GameRoom.szServerName));
+
+				//注册房间
+				m_GlobalInfoManager.ActiveRoomItem(wBindIndex, GameRoom);
+
+				//群发房间
+				m_pITCPNetworkEngine->SendDataBatch(MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_INSERT, &GameRoom, sizeof(GameRoom));
+
+
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnTCPNetworkMainServiceInfo(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnTCPNetworkMainUserCollect(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnTCPNetworkMainRemoteService(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnTCPNetworkMainManagerService(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		return false;
+	}
+
+	bool CAttemperEngineSink::OnTCPNetworkMainAndroidService(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		return false;
+	}
+
+	bool CAttemperEngineSink::SendRoomListToLogon(uint32 dwSocketID)
+	{
+		uint16 wPacketSize = 0;
+		uint8 cbBuffer[SOCKET_TCP_PACKET];
+
+		//发送信息
+		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_INFO);
+
+		//获取对象
+		tagGameRoom * pGameRoom = (tagGameRoom*)  (cbBuffer + wPacketSize);
+		CGlobalInfoManager::ActiveGameRoomContainer agrc = m_GlobalInfoManager.TraverseGameRoom();
+		for (CGlobalInfoManager::AGRC_IT it = agrc.begin(); it != agrc.end(); ++it)
 		{
-			//效验数据
-			assert(wDataSize == sizeof(CMD_CS_C_RegisterPlaza));
-			if (wDataSize != sizeof(CMD_CS_C_RegisterPlaza)) return false;
+			//发送数据
+			if ((wPacketSize + sizeof(tagGameRoom)) > sizeof(cbBuffer))
+			{
+				m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_INSERT, cbBuffer, wPacketSize);
+				wPacketSize = 0;
+			}
 
-			//消息定义
-			CMD_CS_C_RegisterPlaza * pRegisterPlaza = (CMD_CS_C_RegisterPlaza *)pData;
-
-			////有效判断
-			//if ((pRegisterPlaza->szServerName[0] == 0) || (pRegisterPlaza->szServerAddr[0] == 0))
-			//{
-			//	//变量定义
-			//	CMD_CS_S_RegisterFailure RegisterFailure;
-			//	memset(&RegisterFailure, 0, sizeof(RegisterFailure));
-
-			//	//设置变量
-			//	RegisterFailure.lErrorCode = 0L;
-			//	sprintf_s(RegisterFailure.szDescribeString, "服务器注册失败，“服务地址”与“服务器名”不合法！");
-
-			//	//发送消息
-			//	uint16 wStringSize = CountStringBuffer(RegisterFailure.szDescribeString);
-			//	uint16 wSendSize = sizeof(RegisterFailure) - sizeof(RegisterFailure.szDescribeString) + wStringSize;
-			//	m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_REGISTER, SUB_CS_S_REGISTER_FAILURE, &RegisterFailure, wSendSize);
-
-			//	//中断网络
-			//	//m_pITCPNetworkEngine->ShutDownSocket(dwSocketID);
-			//	return true;
-			//}
-
-			////设置绑定
-			//WORD wBindIndex = LOWORD(dwSocketID);
-			//(m_pBindParameter + wBindIndex)->wServiceID = wBindIndex;
-			//(m_pBindParameter + wBindIndex)->ServiceKind = ServiceKind_Plaza;
-
-			////变量定义
-			//tagGamePlaza GamePlaza;
-			//ZeroMemory(&GamePlaza, sizeof(GamePlaza));
-
-			////构造数据
-			//GamePlaza.wPlazaID = wBindIndex;
-			//lstrcpyn(GamePlaza.szServerName, pRegisterPlaza->szServerName, CountArray(GamePlaza.szServerName));
-			//lstrcpyn(GamePlaza.szServerAddr, pRegisterPlaza->szServerAddr, CountArray(GamePlaza.szServerAddr));
-
-			////注册房间
-			//m_GlobalInfoManager.ActivePlazaItem(wBindIndex, GamePlaza);
-
-			////发送列表
-			//SendServerListItem(dwSocketID);
-
-			//SendMatchListItem(dwSocketID);
-
-			////群发设置
-			//m_pITCPNetworkEngine->AllowBatchSend(dwSocketID, true, 0L);
-
-			return true;
+			wPacketSize += sizeof(tagGameRoom);
+			memcpy(pGameRoom, it->second, sizeof(tagGameRoom));
 		}
-		}
-		return false;
-	}
 
-	bool CAttemperEngineSink::OnTCPNetworkMainServiceInfo(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID)
-	{
-		return false;
-	}
+		//发送数据
+		if (wPacketSize > 0) m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_INSERT, cbBuffer, wPacketSize);
 
-	bool CAttemperEngineSink::OnTCPNetworkMainUserCollect(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID)
-	{
-		return false;
-	}
-
-	bool CAttemperEngineSink::OnTCPNetworkMainRemoteService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID)
-	{
-		return false;
-	}
-
-	bool CAttemperEngineSink::OnTCPNetworkMainManagerService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID)
-	{
-		return false;
-	}
-
-	bool CAttemperEngineSink::OnTCPNetworkMainAndroidService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID)
-	{
-		return false;
+		//发送完成
+		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_FINISH);
+		return true;
 	}
 }

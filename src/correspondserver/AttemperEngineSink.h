@@ -3,10 +3,12 @@
 
 #include "KernelEngineHead.h"
 #include "DBExports.h"
-#include "Header.h"
+#include "GlobalInfoManager.h"
 
 namespace Correspond
 {
+	using namespace Net;
+
 	//服务类型
 	enum enServiceKind
 	{
@@ -57,11 +59,11 @@ namespace Correspond
 		//网络事件
 	public:
 		//应答事件
-		virtual bool OnEventTCPNetworkBind(uint64 dwClientAddr, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkBind(uint32 dwClientAddr, uint32 dwSocketID);
 		//关闭事件
-		virtual bool OnEventTCPNetworkShut(uint64 dwClientAddr, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID);
 		//读取事件
-		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID);
+		virtual bool OnEventTCPNetworkRead(TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 		//接口事件
 	public:
@@ -76,17 +78,22 @@ namespace Correspond
 		//网络事件
 	protected:
 		//注册服务
-		bool OnTCPNetworkMainRegister(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		bool OnTCPNetworkMainRegister(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//服务状态
-		bool OnTCPNetworkMainServiceInfo(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		bool OnTCPNetworkMainServiceInfo(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//用户汇总
-		bool OnTCPNetworkMainUserCollect(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		bool OnTCPNetworkMainUserCollect(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//远程服务
-		bool OnTCPNetworkMainRemoteService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		bool OnTCPNetworkMainRemoteService(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//管理服务
-		bool OnTCPNetworkMainManagerService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		bool OnTCPNetworkMainManagerService(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//机器服务
-		bool OnTCPNetworkMainAndroidService(WORD wSubCmdID, VOID * pData, WORD wDataSize, DWORD dwSocketID);
+		bool OnTCPNetworkMainAndroidService(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
+
+		//辅助函数
+	protected:
+		//发送列表
+		bool SendRoomListToLogon(uint32 dwSocketID);
 
 	private:
 		tagBindParameter *				m_pBindParameter;					//辅助数组
@@ -94,6 +101,10 @@ namespace Correspond
 		//组件接口
 	protected:
 		ITCPNetworkEngine *				m_pITCPNetworkEngine;				//网络引擎
+
+		//组件变量
+	protected:
+		CGlobalInfoManager				m_GlobalInfoManager;				//全局管理
 	};
 }
 

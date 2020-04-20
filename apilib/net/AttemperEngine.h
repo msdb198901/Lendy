@@ -47,11 +47,11 @@ public:
 		//客户事件
 	public:
 		//应答事件
-		virtual bool OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr);
+		virtual bool OnEventTCPNetworkBind(uint32 dwSocketID, uint32 dwClientAddr);
 		//关闭事件
-		virtual bool OnEventTCPNetworkShut(uint64 dwSocketID, uint64 dwClientAddr);
+		virtual bool OnEventTCPNetworkShut(uint32 dwSocketID, uint32 dwClientAddr);
 		//读取事件
-		virtual bool OnEventTCPNetworkRead(uint64 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize);
+		virtual bool OnEventTCPNetworkRead(uint32 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize);
 		
 		//连接事件
 	public:

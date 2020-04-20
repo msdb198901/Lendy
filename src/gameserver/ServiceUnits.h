@@ -77,7 +77,7 @@ namespace Game
 		//状态变量
 		enServiceStatus						m_ServiceStatus;
 
-		tagSubGameInfo						m_SubGameInfo;
+		tagGameAddressOption				m_GameAddressOption;
 		tagGameServiceOption 				m_GameServiceOption;				//服务配置
 
 		//服务组件

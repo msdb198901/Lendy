@@ -20,12 +20,12 @@ typedef uint16_t uint16;
 typedef uint8_t uint8;
 
 typedef volatile int vint;
-typedef unsigned char BYTE;
+typedef unsigned char dwSocket;
 typedef unsigned long ulong;
 typedef uint64 uuid64;
 
 
-namespace comm
+namespace Comm
 {
     static const uint32 MaxModuleIDCount = 8;
 

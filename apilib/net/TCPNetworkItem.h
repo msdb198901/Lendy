@@ -4,6 +4,7 @@
 #include "Define.h"
 #include "Packet.h"
 #include "MessageBuffer.h"
+#include <mutex>
 #include <atomic>
 #include <queue>
 #include <memory>
@@ -66,10 +67,16 @@ namespace Net
 
 		void DelayedCloseSocket(); 
 
-		uint16 GetIndex() { return m_index; }
-		uint64 GetClientIP() { return m_remoteAddress.to_v4().to_uint();}
+		//允许群发
+		bool AllowBatchSend(bool cbAllowBatch);
+
+		uint32 GetIndex() { return m_index; }
+		uint32 GetClientIP() { return m_remoteAddress.to_v4().to_uint();}
 
 		MessageBuffer& GetReadBuffer();
+
+		//锁定对象
+		inline std::mutex & GetMutex() { return m_mutex; }
 
 		//回调函数
 	public:
@@ -104,7 +111,10 @@ namespace Net
 		bool HandleQueue();
 
 	private:
-		uint16						m_index;
+		uint32						m_index;
+		bool						m_bAllowBatch;
+		std::mutex					m_mutex;
+
 		tcp::socket					m_socket;
 		asio::ip::address			m_remoteAddress;
 		uint16						m_remotePort;

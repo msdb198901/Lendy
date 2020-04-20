@@ -116,12 +116,18 @@ namespace Net
 
 	public:
 		//发送函数
-		virtual bool SendData(uint64 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0) = 0;
-	
+		virtual bool SendData(uint32 dwSocketID, uint16 wMainCmdID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0) = 0;
+		//批量发送
+		virtual bool SendDataBatch(uint16 wMainCmdID, uint16 wSubCmdID, void * pData, uint16 wDataSize) = 0;
+
 		//控制接口
 	public:
 		//关闭连接
-		virtual bool CloseSocket(uint64 dwSocketID) = 0;
+		virtual bool CloseSocket(uint32 dwSocketID) = 0;
+		//设置关闭
+		virtual bool ShutDownSocket(uint32 dwSocketID) = 0;
+		//允许群发
+		virtual bool AllowBatchSend(uint32 dwSocketID, bool bAllowBatch) = 0;
 	};
 
 	//网络事件
@@ -130,11 +136,11 @@ namespace Net
 		//接口定义
 	public:
 		//应答事件
-		virtual bool OnEventTCPNetworkBind(uint64 dwSocketID, uint64 dwClientAddr) = 0;
+		virtual bool OnEventTCPNetworkBind(uint32 dwSocketID, uint32 dwClientAddr) = 0;
 		//关闭事件
-		virtual bool OnEventTCPNetworkShut(uint64 dwSocketID, uint64 dwClientAddr) = 0;
+		virtual bool OnEventTCPNetworkShut(uint32 dwSocketID, uint32 dwClientAddr) = 0;
 		//读取事件
-		virtual bool OnEventTCPNetworkRead(uint64 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize) = 0;
+		virtual bool OnEventTCPNetworkRead(uint32 dwSocketID, Net::TCP_Command Command, void * pData, uint16 wDataSize) = 0;
 	};
 
 	//调度钩子
@@ -169,11 +175,11 @@ namespace Net
 		//网络事件
 	public:
 		//应答事件
-		virtual bool OnEventTCPNetworkBind(uint64 dwClientAddr, uint64 dwSocketID) = 0;
+		virtual bool OnEventTCPNetworkBind(uint32 dwClientAddr, uint32 dwSocketID) = 0;
 		//关闭事件
-		virtual bool OnEventTCPNetworkShut(uint64 dwClientAddr, uint64 dwSocketID) = 0;
+		virtual bool OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID) = 0;
 		//读取事件
-		virtual bool OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint64 dwSocketID) = 0;
+		virtual bool OnEventTCPNetworkRead(TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID) = 0;
 	};
 
 	//定时器引擎

@@ -95,6 +95,12 @@ namespace Correspond
 		//发送列表
 		bool SendRoomListToLogon(uint32 dwSocketID);
 
+
+		//状态变量
+	protected:
+		uint16							m_wCollectItem;						//汇总连接
+		std::vector<uint16>				m_WaitCollectItemArray;				//汇总等待
+
 	private:
 		tagBindParameter *				m_pBindParameter;					//辅助数组
 

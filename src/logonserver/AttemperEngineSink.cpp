@@ -168,6 +168,16 @@ namespace Logon
 		{
 			case SUC_LOAD_DB_GAME_LIST:
 			{
+				//查询类型
+				tagGameKind GameKind = {};
+				GameKind.wKindID = 104;
+				GameKind.wGameID = 104;
+
+				GameKind.dwOnLineCount = 0;
+				GameKind.dwAndroidCount = 0;
+				GameKind.dwFullCount = 100;
+				m_RoomListManager.InsertGameKind(&GameKind);
+
 				//事件通知
 				ControlResult ControlResult;
 				ControlResult.cbSuccess = 1;
@@ -244,13 +254,13 @@ namespace Logon
 			case SUB_CS_S_ROOM_ONLINE:	//房间人数
 			{
 				//效验参数
-				assert(wDataSize == sizeof(CMD_CS_S_ServerOnLine));
-				if (wDataSize != sizeof(CMD_CS_S_ServerOnLine)) return false;
+				assert(wDataSize == sizeof(CMD_CS_S_RoomOnLine));
+				if (wDataSize != sizeof(CMD_CS_S_RoomOnLine)) return false;
 
 				//变量定义
-				CMD_CS_S_ServerOnLine * pServerOnLine = (CMD_CS_S_ServerOnLine *)pData;
+				CMD_CS_S_RoomOnLine * pServerOnLine = (CMD_CS_S_RoomOnLine *)pData;
 
-				tagGameRoom *pRoomItem = m_RoomListManager.SearchRoomServer(pServerOnLine->wServerID);
+				tagGameRoom *pRoomItem = m_RoomListManager.SearchGameRoom(pServerOnLine->wServerID);
 				if (pRoomItem == nullptr) return true;
 
 				uint32 dwOldOnlineCount = 0, dwOldAndroidCount = 0;
@@ -271,6 +281,18 @@ namespace Logon
 				}
 				return true;
 			}
+			case SUB_CS_S_ROOM_REMOVE:	//房间删除
+			{
+				//效验参数
+				assert(wDataSize == sizeof(CMD_CS_S_RoomRemove));
+				if (wDataSize != sizeof(CMD_CS_S_RoomRemove)) return false;
+
+				//变量定义
+				CMD_CS_S_RoomRemove * pRoomRemove = (CMD_CS_S_RoomRemove *)pData;
+
+				m_RoomListManager.DeleteGameRoom(pRoomRemove->wServerID);
+				return true;
+			}
 			case SUB_CS_S_ROOM_INSERT:	//房间插入
 			{
 				//效验参数
@@ -284,7 +306,7 @@ namespace Logon
 				//更新数据
 				for (uint16 i = 0; i < wItemCount; ++i)
 				{
-					m_RoomListManager.InsertGameServer(pGameRoom++);
+					m_RoomListManager.InsertGameRoom(pGameRoom++);
 				}
 				return true;
 			}
@@ -304,10 +326,10 @@ namespace Logon
 	{
 		switch (wSubCmdID)
 		{
-		case SUB_MB_LOGON_VISITOR:      //游客登录
-		{
-			return OnTCPNetworkSubMBLogonVisitor(pData, wDataSize, dwSocketID);
-		}
+			case SUB_MB_LOGON_VISITOR:      //游客登录
+			{
+				return OnTCPNetworkSubMBLogonVisitor(pData, wDataSize, dwSocketID);
+			}
 		}
 		return false;
 	}
@@ -429,8 +451,6 @@ namespace Logon
 		int id = field[0].GetInt32();
 		std::string account = field[1].GetString();
 		std::string username = field[2].GetString();
-		std::string strAnsiVisitor;
-		Util::StringUtility::Utf8ToConsole(account, strAnsiVisitor);
 		std::string sha_pass_hash = field[3].GetString();
 		std::string face_url = field[4].GetString();
 		int limit = field[5].GetInt8();
@@ -448,9 +468,122 @@ namespace Logon
 		stmt->SetString(1, pLogonVisitor->szMachineID);
 		LogonDatabasePool.DirectExecute(stmt);
 
+		//////////////////////////////////////////////////////////////////////////////////////////
+		CMD_MB_LogonSuccess LogonSuccess;
+		memset(&LogonSuccess, 0, sizeof(LogonSuccess));
+		
+		LogonSuccess.dwUserID = id;
+		LogonSuccess.dwGameID = id;
+		
+		std::string strAnsiAccount;
+		Util::StringUtility::Utf8ToConsole(account, strAnsiAccount);
+		std::wstring wstrAccount = Util::StringUtility::StringToWString(strAnsiAccount);
+		swprintf_s(LogonSuccess.szAccounts, L"%s", wstrAccount.c_str());
+
+		std::string strAnsiUsername;
+		Util::StringUtility::Utf8ToConsole(account, strAnsiUsername);
+		std::wstring wstrUsername = Util::StringUtility::StringToWString(strAnsiUsername);
+		swprintf_s(LogonSuccess.szNickName, L"%s", wstrUsername.c_str());
+
+		std::string strAnsiSHAPass;
+		Util::StringUtility::Utf8ToConsole(sha_pass_hash, strAnsiSHAPass);
+		std::wstring wstrSHAPass = Util::StringUtility::StringToWString(sha_pass_hash);
+		swprintf_s(LogonSuccess.szDynamicPass, L"%s", wstrSHAPass.c_str());
+
+		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_SUCCESS, &LogonSuccess, sizeof(LogonSuccess));
+
+		SendKindListInfo(dwSocketID);
+		SendRoomListInfo(dwSocketID, INVALID_WORD);
+		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_SERVER_LIST, SUB_MB_LIST_FINISH);
 		return true;
 	}
 	
+	void CAttemperEngineSink::SendKindListInfo(uint32 dwSocketID)
+	{
+		//网络数据
+		uint16 wSendSize = 0;
+		uint8 cbDataBuffer[SOCKET_TCP_PACKET];
+
+		//遍历数据
+		KindItemMap kim = m_RoomListManager.TraverseKindList();
+		for (KIM_IT it = kim.begin(); it != kim.end(); ++it)
+		{
+			//发送数据
+			if ((wSendSize + sizeof(CMD_MB_GameKindItem)) > sizeof(cbDataBuffer))
+			{
+				m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_SERVER_LIST, SUB_MB_KIND_LIST, cbDataBuffer, wSendSize);
+				wSendSize = 0;
+			}
+
+			CMD_MB_GameKindItem GameKindItem = {};
+			GameKindItem.wSortID = it->second->wSortID;
+			GameKindItem.wKindID = it->second->wKindID;
+			GameKindItem.wGameID = it->second->wGameID;
+
+			GameKindItem.dwOnLineCount	= it->second->dwOnLineCount;
+			GameKindItem.dwAndroidCount = it->second->dwAndroidCount;
+			GameKindItem.dwFullCount	= it->second->dwFullCount;
+
+			//////////////////////////////////////
+			memcpy(cbDataBuffer + wSendSize, &GameKindItem, sizeof(GameKindItem));
+			wSendSize += sizeof(GameKindItem);
+		}
+
+		//发送剩余
+		if (wSendSize > 0) m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_SERVER_LIST, SUB_MB_KIND_LIST, cbDataBuffer, wSendSize);
+		return;
+	}
+
+	void CAttemperEngineSink::SendRoomListInfo(uint32 dwSocketID, uint16 wKindID)
+	{
+		//网络数据
+		uint16 wSendSize = 0;
+		uint8 cbDataBuffer[SOCKET_TCP_PACKET];
+
+		//遍历数据
+		RoomItemMap rim = m_RoomListManager.TraverseRoomList();
+		for (RIM_IT it = rim.begin(); it != rim.end(); ++it)
+		{
+			//发送数据
+			if ((wSendSize + sizeof(CMD_MB_GameRoomItem)) > sizeof(cbDataBuffer))
+			{
+				m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_SERVER_LIST, SUB_MB_ROOM_LIST, cbDataBuffer, wSendSize);
+				wSendSize = 0;
+			}
+
+			CMD_MB_GameRoomItem GameRoomItem = {};
+			GameRoomItem.wKindID		= it->second->wKindID;
+			GameRoomItem.wSortID		= it->second->wSortID;
+			GameRoomItem.wServerID		= it->second->wServerID;
+			GameRoomItem.wServerKind	= it->second->wServerKind;
+			GameRoomItem.wServerLevel	= it->second->wServerLevel;
+			GameRoomItem.wServerPort	= it->second->wServerPort;
+			GameRoomItem.wTableCount	= (uint8)it->second->wTableCount;
+			GameRoomItem.lCellScore		= it->second->lCellScore;
+			GameRoomItem.lEnterScore	= it->second->lEnterScore;
+								
+			GameRoomItem.dwServerRule	= it->second->dwServerRule;
+			
+			GameRoomItem.dwOnLineCount	= it->second->dwOnLineCount;
+			GameRoomItem.dwAndroidCount = it->second->dwAndroidCount;
+			GameRoomItem.dwFullCount	= it->second->dwFullCount;
+	
+			std::wstring wstrServerAddr = Util::StringUtility::StringToWString(it->second->szServerAddr);
+			swprintf_s(GameRoomItem.szServerAddr, L"%s", wstrServerAddr.c_str());
+
+			std::wstring wstrServerName = Util::StringUtility::StringToWString(it->second->szServerName);
+			swprintf_s(GameRoomItem.szServerName, L"%s", wstrServerName.c_str());
+
+			if (wKindID == INVALID_WORD || wKindID == it->second->wKindID)
+			{
+				memcpy(cbDataBuffer + wSendSize, &GameRoomItem, sizeof(GameRoomItem));
+				wSendSize += sizeof(GameRoomItem);
+			}
+		}
+
+		if (wSendSize > 0) m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_SERVER_LIST, SUB_MB_ROOM_LIST, cbDataBuffer, wSendSize);
+	}
+
 	bool CAttemperEngineSink::OnLogonFailure(uint32 dwSocketID, LogonErrorCode & lec)
 	{
 		if (lec == LEC_NONE)

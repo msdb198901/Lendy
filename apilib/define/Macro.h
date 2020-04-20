@@ -114,4 +114,5 @@ public : \
 inline varType& get_##varName(void) {return m_##varName;}\
 inline void register_##varName(varType var) { m_##varName = var;}
 
+
 #endif

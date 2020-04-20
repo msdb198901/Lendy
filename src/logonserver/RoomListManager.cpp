@@ -14,6 +14,16 @@ namespace Logon
 	{
 	}
 
+	RoomItemMap & CRoomListManager::TraverseRoomList()
+	{
+		return m_RoomList;
+	}
+
+	KindItemMap & CRoomListManager::TraverseKindList()
+	{
+		return m_KindList;
+	}
+
 	tagGameKind * CRoomListManager::SearchGameKind(uint16 wKindID)
 	{
 		KIM_IT it = m_KindList.find(wKindID);
@@ -24,7 +34,7 @@ namespace Logon
 		return nullptr;
 	}
 
-	tagGameRoom * CRoomListManager::SearchRoomServer(uint16 wServerID)
+	tagGameRoom * CRoomListManager::SearchGameRoom(uint16 wServerID)
 	{
 		RIM_IT it = m_RoomList.find(wServerID);
 		if (it != m_RoomList.end())
@@ -34,7 +44,7 @@ namespace Logon
 		return nullptr;
 	}
 
-	bool CRoomListManager::InsertGameServer(tagGameRoom * pGameRoom)
+	bool CRoomListManager::InsertGameRoom(tagGameRoom * pGameRoom)
 	{
 		assert(pGameRoom != nullptr);
 		if (pGameRoom == nullptr) return false;
@@ -44,7 +54,7 @@ namespace Logon
 		uint32 dwOldAndroidCount = 0;
 		uint32 dwOldMaxPlayer = 0;
 
-		tagGameRoom * pGameRoomItem = SearchRoomServer(pGameRoom->wServerID);
+		tagGameRoom * pGameRoomItem = SearchGameRoom(pGameRoom->wServerID);
 		if (pGameRoomItem == nullptr)
 		{
 			try
@@ -109,6 +119,56 @@ namespace Logon
 		}
 
 		m_RoomList[pGameRoomItem->wServerID] = pGameRoomItem;
+		return true;
+	}
+
+	bool CRoomListManager::InsertGameKind(tagGameKind * pGameKind)
+	{
+		tagGameKind * pGameKindItem = SearchGameKind(pGameKind->wKindID);
+		if (pGameKindItem == nullptr)
+		{
+			try
+			{
+				if (!m_FreeRoomItemArray.empty())
+				{
+					pGameKindItem = m_FreeKindItemArray.back();
+					m_FreeKindItemArray.pop_back();
+				}
+				else
+				{
+					pGameKindItem = new tagGameKind;
+					if (pGameKindItem == nullptr) return false;
+				}
+			}
+			catch (...)
+			{
+				return false;
+			}
+			memset(pGameKindItem, 0, sizeof(tagGameKind));
+		}
+		m_KindList[pGameKind->wKindID] = pGameKind;
+		return true;
+	}
+
+	bool CRoomListManager::DeleteGameRoom(uint16 wServerID)
+	{
+		RIM_IT itRoom = m_RoomList.find(wServerID);
+		if (itRoom == m_RoomList.end())
+		{
+			return false;
+		}
+
+		tagGameRoom *pGameRoom = itRoom->second;
+		m_FreeRoomItemArray.emplace_back(pGameRoom);
+		m_RoomList.erase(itRoom);
+
+		KIM_IT itKind = m_KindList.find(pGameRoom->wKindID);
+		if (itKind != m_KindList.end())
+		{
+			itKind->second->dwOnLineCount = __max(itKind->second->dwOnLineCount - pGameRoom->dwOnLineCount, 0);
+			itKind->second->dwFullCount = __max(itKind->second->dwFullCount - pGameRoom->dwFullCount, 0);
+			itKind->second->dwAndroidCount = __max(itKind->second->dwAndroidCount - pGameRoom->dwAndroidCount, 0);
+		}
 		return true;
 	}
 }

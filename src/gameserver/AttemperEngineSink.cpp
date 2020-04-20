@@ -298,11 +298,11 @@ namespace Game
 			case SUB_CS_S_ROOM_ONLINE:	//房间人数
 			{
 				//效验参数
-				assert(wDataSize == sizeof(CMD_CS_S_ServerOnLine));
-				if (wDataSize != sizeof(CMD_CS_S_ServerOnLine)) return false;
+				assert(wDataSize == sizeof(CMD_CS_S_RoomOnLine));
+				if (wDataSize != sizeof(CMD_CS_S_RoomOnLine)) return false;
 
 				//变量定义
-				CMD_CS_S_ServerOnLine * pServerOnLine = (CMD_CS_S_ServerOnLine *)pData;
+				CMD_CS_S_RoomOnLine * pServerOnLine = (CMD_CS_S_RoomOnLine *)pData;
 				return true;
 			}
 			case SUB_CS_S_ROOM_INSERT:	//房间插入

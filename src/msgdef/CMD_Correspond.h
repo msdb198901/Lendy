@@ -53,15 +53,28 @@ struct CMD_CS_C_RegisterRoom
 #define SUB_CS_S_ROOM_INFO			110									//房间信息
 #define SUB_CS_S_ROOM_ONLINE		111									//房间人数
 #define SUB_CS_S_ROOM_INSERT		112									//房间列表
+#define SUB_CS_S_ROOM_REMOVE		114									//房间删除
 #define SUB_CS_S_ROOM_FINISH		115									//房间完成
 
 //房间人数
-struct CMD_CS_S_ServerOnLine
+struct CMD_CS_S_RoomOnLine
 {
 	uint16							wServerID;							//房间标识
 	uint32							dwOnLineCount;						//在线人数
 	uint32							dwAndroidCount;						//机器人数
 };
+
+//房间删除
+struct CMD_CS_S_RoomRemove
+{
+	uint16							wServerID;							//房间标识
+};
+
+//用户汇总
+#define MDM_CS_USER_COLLECT			3									//用户汇总
+
+//用户状态
+#define SUB_CS_S_COLLECT_REQUEST	100									//汇总请求
 
 #pragma pack()
 

@@ -15,9 +15,9 @@ namespace Correspond
 		return true;
 	}
 
-	bool CGlobalInfoManager::ActiveLogonItem(uint16 wBindIndex, tagGameLogon & GamePlaza)
+	bool CGlobalInfoManager::ActiveLogonItem(tagGameLogon & GamePlaza)
 	{
-		if (m_ActiveGameLogon.find(wBindIndex) != m_ActiveGameLogon.end())
+		if (m_ActiveGameLogon.find(GamePlaza.wPlazaID) != m_ActiveGameLogon.end())
 		{
 			assert(nullptr);
 			return false;
@@ -29,7 +29,7 @@ namespace Correspond
 			return false;
 		}
 		memcpy(pGameLogon, &GamePlaza, sizeof(tagGameLogon));
-		m_ActiveGameLogon[wBindIndex] = pGameLogon;
+		m_ActiveGameLogon[GamePlaza.wPlazaID] = pGameLogon;
 		return true;
 	}
 
@@ -46,9 +46,9 @@ namespace Correspond
 		return true;
 	}
 
-	bool CGlobalInfoManager::ActiveRoomItem(uint16 wBindIndex, tagGameRoom & GameRoom)
+	bool CGlobalInfoManager::ActiveRoomItem(tagGameRoom & GameRoom)
 	{
-		if (m_ActiveGameRoom.find(wBindIndex) != m_ActiveGameRoom.end())
+		if (m_ActiveGameRoom.find(GameRoom.wServerID) != m_ActiveGameRoom.end())
 		{
 			assert(nullptr);
 			return false;
@@ -60,7 +60,7 @@ namespace Correspond
 			return false;
 		}
 		memcpy(pGameRoom, &GameRoom, sizeof(tagGameRoom));
-		m_ActiveGameRoom[wBindIndex] = pGameRoom;
+		m_ActiveGameRoom[GameRoom.wServerID] = pGameRoom;
 		return true;
 	}
 

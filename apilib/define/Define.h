@@ -25,6 +25,8 @@ typedef unsigned long ulong;
 typedef uint64 uuid64;
 
 
+
+
 namespace Comm
 {
     static const uint32 MaxModuleIDCount = 8;
@@ -39,19 +41,23 @@ namespace Comm
 
 	static const int recv_buff_block_size = 1024 << 4;
 
-
 	static const int PATH_MAX = 256;
-	
+
 	////////////////////////网狐框架常用变量
 	//帐号长度
 	static const int LEN_ACCOUNTS		= 32;
+	//昵称长度
+	static const int LEN_NICKNAME		= 32;
+	//密码长度
+	static const int LEN_PASSWORD		= 33;	
 	//序列长度
 	static const int LEN_MACHINE_ID		= 33;
 	//移动电话
 	static const int LEN_MOBILE_PHONE	= 12;	
 	//错误描述
 	static const int LEN_ERROR_DESCRIBE = 128;
-
+	//无效数值
+	static const uint16 INVALID_WORD = uint16(-1);					
 }
 
 #endif

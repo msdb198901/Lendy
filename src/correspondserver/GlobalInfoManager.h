@@ -27,14 +27,14 @@ namespace Correspond
 		//删除广场
 		bool DeleteLogonItem(uint16 wPlazaID);
 		//激活广场
-		bool ActiveLogonItem(uint16 wBindIndex,tagGameLogon &GamePlaza);
+		bool ActiveLogonItem(tagGameLogon &GamePlaza);
 
 		//房间管理
 	public:
 		//删除房间
 		bool DeleteRoomItem(uint16 wServerID);
 		//激活房间
-		bool ActiveRoomItem(uint16 wBindIndex, tagGameRoom & GameServer);
+		bool ActiveRoomItem(tagGameRoom & GameServer);
 		//遍历房间
 		ActiveGameRoomContainer &TraverseGameRoom();
 		//寻找房间

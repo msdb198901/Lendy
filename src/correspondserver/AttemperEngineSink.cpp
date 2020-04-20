@@ -16,7 +16,10 @@ namespace Correspond
 
 	CAttemperEngineSink::CAttemperEngineSink()
 	{
-		
+		m_wCollectItem = INVALID_WORD;
+
+		m_pBindParameter = nullptr;
+		m_pITCPNetworkEngine = nullptr;
 	}
 
 	CAttemperEngineSink::~CAttemperEngineSink()
@@ -42,9 +45,12 @@ namespace Correspond
 
 	bool CAttemperEngineSink::OnAttemperEngineConclude(IUnknownEx * pIUnknownEx)
 	{
-		m_pITCPNetworkEngine = nullptr;
+		m_wCollectItem = INVALID_WORD;
+		m_WaitCollectItemArray.clear();
 
-		return false;
+		PDELETE(m_pBindParameter);
+		m_pITCPNetworkEngine = nullptr;
+		return true;
 	}
 
 	bool CAttemperEngineSink::OnEventTCPSocketLink(uint16 wServiceID, int iErrorCode)
@@ -86,6 +92,45 @@ namespace Correspond
 		//游戏服务
 		if (pBindParameter->ServiceKind == ServiceKind_Game)
 		{
+			//用户汇总
+			if (wBindIndex == m_wCollectItem)
+			{
+				//设置变量
+				m_wCollectItem = INVALID_WORD;
+
+				if (!m_WaitCollectItemArray.empty())
+				{
+					m_wCollectItem = m_WaitCollectItemArray.back();
+					m_WaitCollectItemArray.pop_back();
+
+					//发送消息
+					uint32 dwSocketID = (m_pBindParameter + m_wCollectItem)->dwSocketID;
+					m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_USER_COLLECT, SUB_CS_S_COLLECT_REQUEST);
+				}
+			}
+			else
+			{
+				//删除等待
+				for (std::vector<uint16>::iterator it = m_WaitCollectItemArray.begin(); it != m_WaitCollectItemArray.end(); ++it)
+				{
+					if (*it == wBindIndex)
+					{
+						m_WaitCollectItemArray.erase(it);
+						break;
+					}
+				}
+			}
+
+			//变量定义
+			CMD_CS_S_RoomRemove RoomRemove;
+			memset(&RoomRemove, 0, sizeof(RoomRemove));
+
+			//删除通知
+			RoomRemove.wServerID = pBindParameter->wServiceID;
+			m_pITCPNetworkEngine->SendDataBatch(MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_REMOVE, &RoomRemove, sizeof(RoomRemove));
+
+			//注销房间
+			m_GlobalInfoManager.DeleteRoomItem(pBindParameter->wServiceID);
 		}
 
 		//广场服务
@@ -169,7 +214,7 @@ namespace Correspond
 				sprintf_s(GameLogon.szServerAddr, pRegisterLogon->szServerAddr, sizeof(GameLogon.szServerAddr));
 
 				//注册房间
-				m_GlobalInfoManager.ActiveLogonItem(wBindIndex, GameLogon);
+				m_GlobalInfoManager.ActiveLogonItem(GameLogon);
 
 				//发送列表
 				SendRoomListToLogon(dwSocketID);
@@ -231,12 +276,18 @@ namespace Correspond
 				sprintf_s(GameRoom.szServerName, pRegisterRoom->szServerName, sizeof(GameRoom.szServerName));
 
 				//注册房间
-				m_GlobalInfoManager.ActiveRoomItem(wBindIndex, GameRoom);
+				m_GlobalInfoManager.ActiveRoomItem(GameRoom);
 
 				//群发房间
 				m_pITCPNetworkEngine->SendDataBatch(MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_INSERT, &GameRoom, sizeof(GameRoom));
 
-
+				//汇总通知
+				if (m_wCollectItem == INVALID_WORD)
+				{
+					m_wCollectItem = wBindIndex;
+					m_pITCPNetworkEngine->SendData(dwSocketID, MDM_CS_USER_COLLECT, SUB_CS_S_COLLECT_REQUEST);
+				}
+				else m_WaitCollectItemArray.emplace_back(wBindIndex);
 				return true;
 			}
 		}

@@ -86,6 +86,13 @@ namespace Logon
 		//游客登录
 		bool OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint32 dwSocketID);
 
+		//手机列表
+	protected:
+		//发送房间
+		void SendKindListInfo(uint32 dwSocketID);
+		//发送房间
+		void SendRoomListInfo(uint32 dwSocketID, uint16 wKindID);
+
 	protected:
 		//登陆失败
 		bool OnLogonFailure(uint32 dwSocketID, LogonErrorCode &lec);

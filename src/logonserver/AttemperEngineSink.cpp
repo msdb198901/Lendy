@@ -492,7 +492,7 @@ namespace Logon
 
 		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_SUCCESS, &LogonSuccess, sizeof(LogonSuccess));
 
-		SendKindListInfo(dwSocketID);
+		//SendKindListInfo(dwSocketID);
 		SendRoomListInfo(dwSocketID, INVALID_WORD);
 		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_SERVER_LIST, SUB_MB_LIST_FINISH);
 		return true;

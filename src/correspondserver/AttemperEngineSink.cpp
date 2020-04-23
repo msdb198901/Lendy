@@ -217,7 +217,7 @@ namespace Correspond
 				m_GlobalInfoManager.ActiveLogonItem(GameLogon);
 
 				//发送列表
-				SendRoomListToLogon(dwSocketID);
+				SendRoomList(dwSocketID);
 
 				//群发设置
 				m_pITCPNetworkEngine->AllowBatchSend(dwSocketID, true);
@@ -281,6 +281,11 @@ namespace Correspond
 				//群发房间
 				m_pITCPNetworkEngine->SendDataBatch(MDM_CS_ROOM_INFO, SUB_CS_S_ROOM_INSERT, &GameRoom, sizeof(GameRoom));
 
+				SendRoomList(dwSocketID);
+
+				//群发设置
+				m_pITCPNetworkEngine->AllowBatchSend(dwSocketID, true);
+
 				//汇总通知
 				if (m_wCollectItem == INVALID_WORD)
 				{
@@ -319,7 +324,7 @@ namespace Correspond
 		return false;
 	}
 
-	bool CAttemperEngineSink::SendRoomListToLogon(uint32 dwSocketID)
+	bool CAttemperEngineSink::SendRoomList(uint32 dwSocketID)
 	{
 		uint16 wPacketSize = 0;
 		uint8 cbBuffer[SOCKET_TCP_PACKET];

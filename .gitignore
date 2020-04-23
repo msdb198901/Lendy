@@ -11166,3 +11166,9 @@ Build/src/logonserver/Debug/GameConfig.ini
 Build/src/logonserver/Debug/libmysql.dll
 Build/src/logonserver/Debug/libmysql.lib
 Build/src/logonserver/GameConfig.ini
+Build/.vs/lendy/v15/ipch/AutoPCH/556b27e367641cea/CMD_GAMESERVER.ipch
+Build/.vs/lendy/v15/ipch/AutoPCH/5dbc3f07908afcef/ROOMUSERMANAGER.ipch
+Build/src/gameserver/GameServer.dir/Debug/RoomUserManager.obj
+Build/src/logonserver/LogonServer.dir/Debug/UserListManager.obj
+Build/src/logonserver/LogonServer.dir/Debug/UserListManager.obj
+*.obj

@@ -83,6 +83,8 @@
 #define ADELETE(a) if((a)){ delete[] (a); (a) = nullptr; }
 #define ADELETE(a) if((a)){ delete[] (a); (a) = nullptr; }
 
+#define ARR_LEN(a) (sizeof((a))/sizeof((a[0])))
+
 #if LENDY_COMPILER == LENDY_COMPILER_MICROSOFT
 #define EXPORT_BEGIN __pragma(warning(push)) __pragma(warning(disable:4251))
 #define EXPORT_END __pragma(warning(pop))

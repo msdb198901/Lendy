@@ -24,23 +24,8 @@ typedef unsigned char dwSocket;
 typedef unsigned long ulong;
 typedef uint64 uuid64;
 
-
-
-
 namespace Comm
 {
-    static const uint32 MaxModuleIDCount = 8;
-
-	static const uint32 MaxMsgLen = 1024 * 1024;   
-
-	static const int MaxFullLen = 2048;            // 支持的最大全路径文件名长度
-
-	static const int ConfigFileLen = 128;	
-
-	static const int send_buff_block_size = 1024;
-
-	static const int recv_buff_block_size = 1024 << 4;
-
 	static const int PATH_MAX = 256;
 
 	////////////////////////网狐框架常用变量
@@ -56,8 +41,25 @@ namespace Comm
 	static const int LEN_MOBILE_PHONE	= 12;	
 	//错误描述
 	static const int LEN_ERROR_DESCRIBE = 128;
+	//加密密码
+	static const int LEN_MD5			= 33;
 	//无效数值
-	static const uint16 INVALID_WORD = uint16(-1);					
+	static const uint16 INVALID_WORD	= uint16(-1);	
+	static const uint32 INVALID_DWORD	= uint32(-1);
+	static const uint16 INVALID_TABLE	= uint16(-1);
+	static const uint16 INVALID_CHAIR	= uint16(-1);
+
+	//用户状态
+	static const uint8 US_NULL			= 0x00;								//没有状态
+	static const uint8 US_FREE			= 0x01;								//站立状态
+	static const uint8 US_SIT			= 0x02;								//坐下状态
+	static const uint8 US_READY			= 0x03;								//同意状态
+	static const uint8 US_LOOKON		= 0x04;								//旁观状态
+	static const uint8 US_PLAYING		= 0x05;								//游戏状态
+	static const uint8 US_OFFLINE		= 0x06;								//断线状态
+
+	//人数定义
+	static const uint16 MAX_CHAIR		= 200;								//最大椅子
 }
 
 #endif

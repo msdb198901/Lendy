@@ -93,7 +93,7 @@ namespace Correspond
 		//辅助函数
 	protected:
 		//发送列表
-		bool SendRoomListToLogon(uint32 dwSocketID);
+		bool SendRoomList(uint32 dwSocketID);
 
 
 		//状态变量

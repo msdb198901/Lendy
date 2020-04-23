@@ -3,6 +3,7 @@
 
 
 #include "Define.h"
+#include "Struct.h"
 
 #pragma pack(1)
 
@@ -74,7 +75,37 @@ struct CMD_CS_S_RoomRemove
 #define MDM_CS_USER_COLLECT			3									//用户汇总
 
 //用户状态
+#define SUB_CS_C_USER_ENTER			1									//用户进入
+#define SUB_CS_C_USER_STATUS		4									//用户状态
+//用户状态
 #define SUB_CS_S_COLLECT_REQUEST	100									//汇总请求
+
+
+//用户进入
+struct CMD_CS_C_UserEnter
+{
+	//用户信息
+	uint32							dwUserID;							//用户标识
+	uint32							dwGameID;							//游戏标识
+	char							szNickName[Comm::LEN_NICKNAME];		//用户昵称
+
+	//详细信息
+	Comm::tagUserInfo				userInfo;							//用户信息
+};
+
+
+//用户状态
+struct CMD_CS_C_UserStatus
+{
+	//用户信息
+	uint32							dwUserID;							//用户标识
+	uint8							cbUserStatus;						//用户状态
+	uint16							wKindID;							//游戏标识
+	uint16							wServerID;							//房间标识
+	uint16							wTableID;							//桌子索引
+	uint16							wChairID;							//椅子位置
+};
+
 
 #pragma pack()
 

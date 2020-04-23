@@ -145,7 +145,7 @@ namespace Game
 		m_GameServiceOption.wKindID = m_GameAddressOption.wKindID;
 		m_GameServiceOption.wServerPort = m_GameAddressOption.wPort;
 		m_GameServiceOption.wServerID = sConfigMgr->GetInt32(strSection, "ServerID", 0);
-		m_GameServiceOption.wTableCount = sConfigMgr->GetUInt64(strSection, "TableCount", 0);
+		m_GameServiceOption.wTableCount = sConfigMgr->GetInt32(strSection, "TableCount", 0);
 		m_GameServiceOption.wChairCount = sConfigMgr->GetInt32(strSection, "ChairCount", 0);
 		
 		m_GameServiceOption.cbDynamicJoin = sConfigMgr->GetInt32(strSection, "DynamicJoin", 0);
@@ -158,7 +158,7 @@ namespace Game
 		m_GameServiceOption.lMinEnterScore = sConfigMgr->GetUInt64(strSection, "MinEnterScore", 0);
 		m_GameServiceOption.lMaxEnterScore = sConfigMgr->GetUInt64(strSection, "MaxEnterScore", 0);
 
-		m_GameServiceOption.wMaxPlayer = sConfigMgr->GetUInt64(strSection, "MaxPlayer", 0);
+		m_GameServiceOption.wMaxPlayer = sConfigMgr->GetInt32(strSection, "MaxPlayer", 0);
 		
 		sprintf_s(m_GameServiceOption.strGameName, "%s", sConfigMgr->Get(strSection, "GameName", "").c_str());
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS

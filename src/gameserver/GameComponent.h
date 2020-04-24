@@ -4,6 +4,7 @@
 #include "Define.h"
 #include "Struct.h"
 #include "KernelEngineHead.h"
+#include "CMD_GameServer.h"
 #include <vector>
 
 //结构体
@@ -52,9 +53,9 @@ namespace Game
 	//桌子参数
 	struct tagTableFrameParameter
 	{
+		Net::ITimerEngine *				pITimerEngine;						//时间引擎
 		IGameServiceManager *			pIGameServiceManager;				//服务管理
 		IMainServiceFrame *				pIMainServiceFrame;					//服务框架
-		Net::ITCPSocketService *		pITCPSocketService;					//网络服务
 		tagGameServiceOption *			pGameServiceOption;
 	};
 }
@@ -224,12 +225,49 @@ namespace Game
 		//发送场景
 		virtual bool SendGameScene(IRoomUserItem * pIServerUserItem, void * pData, uint16 wDataSize) = 0;
 
+		//游戏用户
+	public:
+		//发送数据
+		virtual bool SendTableData(uint16 wChairID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0, uint16 wMainCmdID = MDM_GF_GAME) = 0;
+
 		//动作处理
 	public:
 		//起立动作
 		virtual bool PerformStandUpAction(IRoomUserItem * pIServerUserItem, bool bInitiative = false) = 0;
 		//坐下动作
 		virtual bool PerformSitDownAction(uint16 wChairID, IRoomUserItem * pIServerUserItem, const char* szPassword = nullptr) = 0;
+
+		//事件接口
+	public:
+		//时间事件
+		virtual bool OnTimerMessage(uint32 dwTimerID) = 0;
+
+		//时间接口
+	public:
+		//设置时间
+		virtual bool SetGameTimer(uint32 dwTimerID, uint32 dwElapse, uint32 dwRepeat) = 0;
+		//删除时间
+		virtual bool KillGameTimer(uint32 dwTimerID) = 0;
+
+		//状态接口
+	public:
+		//获取状态
+		virtual uint8 GetGameStatus() = 0;
+		//设置状态
+		virtual void SetGameStatus(uint8 bGameStatus) = 0;
+
+
+		//配置接口
+	public:
+		//开始模式
+		virtual uint8 GetStartMode() = 0;
+		//开始模式
+		virtual void SetStartMode(uint8 cbStartMode) = 0;
+
+		//状态接口
+	public:
+		//获取配置
+		virtual tagGameServiceOption* GetGameServiceOption() = 0;
 	};
 
 	//回调接口

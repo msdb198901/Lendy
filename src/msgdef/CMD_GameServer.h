@@ -7,6 +7,34 @@
 
 using namespace Comm;
 
+
+//开始模式
+enum StartGameMode
+{
+	START_MODE_ALL_READY			= 0x00,								//所有准备
+	START_MODE_FULL_READY			= 0x01,								//满人开始
+	START_MODE_PAIR_READY			= 0x02,								//配对开始
+	START_MODE_TIME_CONTROL			= 0x10,								//时间控制
+	START_MODE_MASTER_CONTROL		= 0x11								//管理控制
+};
+
+//结束原因
+enum GameEndResult
+{
+	GER_NORMAL						= 0x00,								//常规结束
+	GER_DISMISS						= 0x01,								//游戏解散
+	GER_USER_LEAVE					= 0x02,								//用户离开
+	GER_NETWORK_ERROR				= 0x03,								//网络错误
+};
+
+//游戏状态
+enum GameSceneStatus
+{
+	GAME_STATUS_FREE				= 0	,								//空闲状态
+	GAME_STATUS_PLAY				= 100,								//游戏状态
+	GAME_STATUS_WAIT				= 200,								//等待状态
+};
+
 #define MDM_CM_SYSTEM				1000								//系统命令
 
 #define SUB_CM_SYSTEM_MESSAGE		1									//系统消息
@@ -314,6 +342,12 @@ struct CMD_GF_RBRoomStatus
 	tagRBGameRecord					GameRecordArrary[48];				//路单记录
 	uint8							cbRecordCount;						//记录条数
 };
+
+
+//////////////////////////////////////////////////////////////////////////////////
+//游戏命令
+
+#define MDM_GF_GAME					200									//游戏命令
 
 #pragma pack()
 

@@ -11172,3 +11172,17 @@ Build/src/gameserver/GameServer.dir/Debug/RoomUserManager.obj
 Build/src/logonserver/LogonServer.dir/Debug/UserListManager.obj
 Build/src/logonserver/LogonServer.dir/Debug/UserListManager.obj
 *.obj
+Build/src/correspondserver/Debug/RBBattleConfig_1.ini
+Build/src/correspondserver/Debug/RedBlack_1.ini
+Build/src/correspondserver/RBBattleConfig_1.ini
+Build/src/correspondserver/RedBlack_1.ini
+Build/src/gameserver/Debug/RBBattleConfig_1.ini
+Build/src/gameserver/Debug/RedBlack_1.ini
+Build/src/gameserver/RBBattleConfig_1.ini
+Build/src/gameserver/RedBlack_1.ini
+Build/src/logonserver/Debug/RBBattleConfig_1.ini
+Build/src/logonserver/Debug/RedBlack_1.ini
+Build/src/logonserver/LogonServer.dir/Debug/UserListManager.obj
+Build/src/logonserver/RBBattleConfig_1.ini
+Build/src/logonserver/RedBlack_1.ini
+Build/src/logonserver/LogonServer.dir/Debug/UserListManager.obj

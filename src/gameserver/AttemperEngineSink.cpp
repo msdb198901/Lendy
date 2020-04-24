@@ -527,7 +527,6 @@ namespace Game
 		//服务组件
 		TableFrameParameter.pIMainServiceFrame = this;
 		TableFrameParameter.pIGameServiceManager = m_pIGameServiceManager;
-		TableFrameParameter.pITCPSocketService = m_pITCPSocketService;
 
 		//配置参数
 		TableFrameParameter.pGameServiceOption = m_pGameServiceOption;

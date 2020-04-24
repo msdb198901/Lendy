@@ -18,7 +18,7 @@ namespace Game
 		virtual ~CTableFrame();
 
 		virtual void Release() { delete this; }
-		virtual void *QueryInterface(GGUID uuid) { return nullptr; }
+		virtual void *QueryInterface(GGUID uuid);
 
 		//用户接口
 	public:
@@ -56,12 +56,48 @@ namespace Game
 		//发送场景
 		virtual bool SendGameScene(IRoomUserItem * pIServerUserItem, void * pData, uint16 wDataSize);
 
+		//事件接口
+	public:
+		//时间事件
+		virtual bool OnTimerMessage(uint32 dwTimerID);
+
+		//时间接口
+	public:
+		//设置时间
+		virtual bool SetGameTimer(uint32 dwTimerID, uint32 dwElapse, uint32 dwRepeat);
+		//删除时间
+		virtual bool KillGameTimer(uint32 dwTimerID);
+
+		//状态接口
+	public:
+		//获取状态
+		virtual uint8 GetGameStatus();
+		//设置状态
+		virtual void SetGameStatus(uint8 bGameStatus);
+
+		//游戏用户
+	public:
+		//发送数据
+		virtual bool SendTableData(uint16 wChairID, uint16 wSubCmdID, void * pData = nullptr, uint16 wDataSize = 0, uint16 wMainCmdID = MDM_GF_GAME);
+
 		//动作处理
 	public:
 		//起立动作
 		virtual bool PerformStandUpAction(IRoomUserItem * pIServerUserItem, bool bInitiative = false);
 		//坐下动作
 		virtual bool PerformSitDownAction(uint16 wChairID, IRoomUserItem * pIServerUserItem, const char* szPassword = nullptr);
+
+		//配置接口
+	public:
+		//开始模式
+		virtual uint8 GetStartMode() { return m_cbStartMode; }
+		//开始模式
+		virtual void SetStartMode(uint8 cbStartMode) { m_cbStartMode = cbStartMode; }
+
+		//状态接口
+	public:
+		//获取配置
+		virtual tagGameServiceOption* GetGameServiceOption();
 
 		//系统事件
 	public:
@@ -96,6 +132,7 @@ namespace Game
 	
 		//游戏属性
 	protected:
+		uint8							m_cbStartMode;
 		uint16							m_wTableID;							//桌子号码
 		uint16							m_wChairCount;						//椅子数目
 		uint16							m_wUserCount;						//用户数目
@@ -107,13 +144,15 @@ namespace Game
 		bool							m_bTableStarted;					//游戏标志
 		bool							m_bTableInitFinish;					//初始标识
 
+		uint32							m_dwDrawStartTime;
+
 		//用户数组
 	protected:
 		CTableUserItemArray				m_TableUserItemArray;				//游戏用户
 	
 		//数据接口
 	protected:
-		Net::ITCPSocketService *		m_pITCPSocketService;				//网络服务
+		Net::ITimerEngine *					m_pITimerEngine;					//时间引擎
 		ITableFrameSink	*				m_pITableFrameSink;					//桌子接口
 		IMainServiceFrame *				m_pIMainServiceFrame;				//服务接口
 

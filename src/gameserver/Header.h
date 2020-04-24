@@ -46,12 +46,12 @@ namespace Game
 		SMT_CLOSE_INSURE		= 0x0800								//关闭银行
 	}; 
 
-	enum GameErrorResult
+	enum GameTimerID
 	{
-		GER_NORMAL				= 0x00,									//常规结束
-		GER_DISMISS				= 0x01,									//游戏解散
-		GER_USER_LEAVE			= 0x02,									//用户离开
-		GER_NETWORK_ERROR		= 0x03									//网络错误
+		//桌子范围
+		IDI_TABLE_MODULE_START  = 10000,								//起始标识
+		IDI_TABLE_MODULE_FINISH = 50000,								//终止标识
+		IDI_TABLE_MODULE_RANGE	= 100,									//标识范围
 	};
 
 	enum LogonErrorRoom

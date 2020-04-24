@@ -5,7 +5,7 @@ set mode="Debug"
 
 set src_file_path="%~dp0Build\apilib"
 
-set config_src="%~dp0src\correspondserver" "%~dp0src\logonserver" "%~dp0src\gameserver"
+set config_src="%~dp0src\correspondserver" "%~dp0src\logonserver" "%~dp0src\gameserver" "%~dp0src\subgame\redblack"
 set dst_run="%~dp0Build\src\correspondserver" "%~dp0Build\src\logonserver" "%~dp0Build\src\gameserver" "%~dp0Build\src\correspondserver\%mode%" "%~dp0Build\src\logonserver\%mode%" "%~dp0Build\src\gameserver\%mode%"
 set sub_game="%~dp0Build\src\subgame\redblack\%mode%"
 

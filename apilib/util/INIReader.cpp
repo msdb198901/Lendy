@@ -26,7 +26,7 @@ namespace Util
 			return -1;
 		}
 
-		Clear();
+		//Clear();
 
 		int ret = ParseFile(file);
 		fclose(file);

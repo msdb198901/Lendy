@@ -56,11 +56,6 @@ namespace Game
 		//发送场景
 		virtual bool SendGameScene(IRoomUserItem * pIServerUserItem, void * pData, uint16 wDataSize);
 
-		//事件接口
-	public:
-		//时间事件
-		virtual bool OnTimerMessage(uint32 dwTimerID);
-
 		//时间接口
 	public:
 		//设置时间
@@ -101,6 +96,8 @@ namespace Game
 
 		//系统事件
 	public:
+		//时间事件
+		bool OnEventTimer(uint32 dwTimerID);
 		//框架事件
 		bool OnEventSocketFrame(uint16 wSubCmdID, void * pData, uint16 wDataSize, IRoomUserItem * pIServerUserItem);
 
@@ -133,9 +130,11 @@ namespace Game
 		//游戏属性
 	protected:
 		uint8							m_cbStartMode;
+		uint8							m_cbGameStatus;
 		uint16							m_wTableID;							//桌子号码
 		uint16							m_wChairCount;						//椅子数目
 		uint16							m_wUserCount;						//用户数目
+		uint16							m_wPlayCount;						//游戏局数
 
 		//状态变量
 	protected:
@@ -152,7 +151,7 @@ namespace Game
 	
 		//数据接口
 	protected:
-		Net::ITimerEngine *					m_pITimerEngine;					//时间引擎
+		Net::ITimerEngine *				m_pITimerEngine;					//时间引擎
 		ITableFrameSink	*				m_pITableFrameSink;					//桌子接口
 		IMainServiceFrame *				m_pIMainServiceFrame;				//服务接口
 

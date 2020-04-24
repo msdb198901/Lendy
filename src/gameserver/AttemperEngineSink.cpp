@@ -229,9 +229,28 @@ namespace Game
 	bool CAttemperEngineSink::OnEventTimer(uint32 dwTimerID)
 	{
 		//时间处理
-		switch (dwTimerID)
+		try 
 		{
-			case IDI_CONNECT_CORRESPOND:
+			//桌子时间
+			if ((dwTimerID >= IDI_TABLE_MODULE_START) && (dwTimerID <= IDI_TABLE_MODULE_FINISH))
+			{
+				//桌子号码
+				uint32 dwTableTimerID = dwTimerID - IDI_TABLE_MODULE_START;
+				uint16 wTableID = (uint16)(dwTableTimerID / IDI_TABLE_MODULE_RANGE);
+
+				//时间效验
+				if (wTableID >= (uint16)m_TableFrameArray.size())
+				{
+					assert(nullptr);
+					return false;
+				}
+
+				//时间通知
+				CTableFrame * pTableFrame = m_TableFrameArray[wTableID];
+				return pTableFrame->OnEventTimer(dwTableTimerID%IDI_TABLE_MODULE_RANGE);
+			}
+
+			if (IDI_CONNECT_CORRESPOND)
 			{
 				std::string strCorrespondAddress = sConfigMgr->Get("CorrespondNet", "BindIP", "127.0.0.1");
 				uint16 wCorrespondPort = sConfigMgr->GetInt32("CorrespondNet", "Port", 8600);
@@ -239,6 +258,10 @@ namespace Game
 				LOG_INFO("server.game", "Connecting to the correspond server [ %s:%d ]", strCorrespondAddress, wCorrespondPort);
 				return true;
 			}
+		}
+		catch (...)
+		{
+
 		}
 		return false;
 	}
@@ -526,6 +549,7 @@ namespace Game
 
 		//服务组件
 		TableFrameParameter.pIMainServiceFrame = this;
+		TableFrameParameter.pITimerEngine = m_pITimerEngine;
 		TableFrameParameter.pIGameServiceManager = m_pIGameServiceManager;
 
 		//配置参数

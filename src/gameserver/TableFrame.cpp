@@ -128,12 +128,104 @@ namespace Game
 
 	bool CTableFrame::ConcludeGame(uint8 cbGameStatus)
 	{
-		return false;
+		//效验状态
+		if (!m_bGameStarted) return false;
+
+		//保存变量
+		bool bDrawStarted = m_bDrawStarted;
+
+		//设置状态
+		m_bDrawStarted = false;
+		m_cbGameStatus = cbGameStatus;
+		m_bGameStarted = (cbGameStatus >= GAME_STATUS_PLAY) ? true : false;
+		++m_wPlayCount;
+
+		//结束设置
+		if (!m_bGameStarted)
+		{
+			//变量定义
+			bool bOffLineWait = false;
+
+			//设置用户
+			for (uint16 i = 0; i < m_wChairCount; i++)
+			{
+				//获取用户
+				IRoomUserItem * pIServerUserItem = GetTableUserItem(i);
+
+				//用户处理
+				if (pIServerUserItem != nullptr)
+				{
+					//设置状态
+					if (pIServerUserItem->GetUserStatus() == US_OFFLINE)
+					{
+						PerformStandUpAction(pIServerUserItem);
+					}
+					else
+					{
+						if (pIServerUserItem->GetUserStatus() == US_NULL)
+						{
+							pIServerUserItem->SetUserStatus(US_NULL, m_wTableID, i);
+							PerformStandUpAction(pIServerUserItem);
+						}
+						else
+						{
+							//设置状态
+							pIServerUserItem->SetUserStatus(US_SIT, m_wTableID, i);
+						}
+					}
+				}
+			}
+		}
+
+		//重置桌子
+		assert(m_pITableFrameSink != nullptr);
+		if (m_pITableFrameSink != nullptr) m_pITableFrameSink->RepositionSink();
+
+		//踢出检测
+		if (!m_bGameStarted)
+		{
+			for (uint16 i = 0; i < m_wChairCount; ++i)
+			{
+				//获取用户
+				if (m_TableUserItemArray[i] == nullptr) continue;
+				IRoomUserItem * pIServerUserItem = m_TableUserItemArray[i];
+
+				//积分限制
+				if ((m_pGameServiceOption->lMinEnterScore != 0) && (pIServerUserItem->GetUserScore() < m_pGameServiceOption->lMinEnterScore))
+				{
+					//用户起立
+					PerformStandUpAction(pIServerUserItem);
+					continue;
+				}
+			}
+		}
+
+		//结束桌子
+		ConcludeTable();
+
+		//发送状态
+		SendTableStatus();
+
+		return true;
 	}
 
 	bool CTableFrame::ConcludeTable()
 	{
-		return false;
+		//结束桌子
+		if (!m_bGameStarted && m_bTableStarted)
+		{
+			//人数判断
+			uint16 wTableUserCount = GetSitUserCount();
+			if (wTableUserCount == 0) m_bTableStarted = false;
+			if (m_pGameServiceOption->wChairCount == MAX_CHAIR) m_bTableStarted = false;
+
+			//模式判断
+			if (m_cbStartMode == START_MODE_FULL_READY) m_bTableStarted = false;
+			if (m_cbStartMode == START_MODE_PAIR_READY) m_bTableStarted = false;
+			if (m_cbStartMode == START_MODE_ALL_READY) m_bTableStarted = false;
+		}
+
+		return true;
 	}
 
 	bool CTableFrame::SendGameScene(IRoomUserItem * pIServerUserItem, void * pData, uint16 wDataSize)
@@ -146,11 +238,6 @@ namespace Game
 		assert(m_pIMainServiceFrame != nullptr);
 		m_pIMainServiceFrame->SendData(pIServerUserItem, MDM_GF_FRAME, SUB_GF_GAME_SCENE, pData, wDataSize);
 		return true;
-	}
-
-	bool CTableFrame::OnTimerMessage(uint32 dwTimerID)
-	{
-		return false;
 	}
 
 	bool CTableFrame::SetGameTimer(uint32 dwTimerID, uint32 dwElapse, uint32 dwRepeat)
@@ -387,6 +474,16 @@ namespace Game
 	tagGameServiceOption * CTableFrame::GetGameServiceOption()
 	{
 		return m_pGameServiceOption;
+	}
+
+	bool CTableFrame::OnEventTimer(uint32 dwTimerID)
+	{
+		//回调事件
+		if ((dwTimerID >= 0) && (dwTimerID < IDI_TABLE_SINK_RANGE))
+		{
+			assert(m_pITableFrameSink != nullptr);
+			return m_pITableFrameSink->OnTimerMessage(dwTimerID);
+		}
 	}
 
 	bool CTableFrame::OnEventSocketFrame(uint16 wSubCmdID, void * pData, uint16 wDataSize, IRoomUserItem * pIServerUserItem)

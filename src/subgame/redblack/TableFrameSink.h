@@ -2,6 +2,7 @@
 #define TABLE_FRAME_SINK_H
 
 #include "CMD_RedBlack.h"
+#include "GameLogic.h"
 #include "GameServerManager.h"
 
 namespace SubGame
@@ -72,6 +73,15 @@ namespace SubGame
 		//用户列表
 		bool OnGetUserListGameID(uint16 wSeatUser[MAX_SEAT_COUNT]);
 
+		//游戏统计
+	private:
+		//游戏发牌
+		void DispatchTableCard();
+		//结束计算
+		uint32 GameOver();
+		//计算得分
+		uint64 CalculateScore(uint64& lBankerWinScore, tagServerGameRecord& GameRecord);
+
 		//辅助函数
 	private:
 		//读取配置
@@ -80,6 +90,7 @@ namespace SubGame
 		//组件变量
 	protected:
 		ITableFrame	*					m_pITableFrame;							//框架接口
+		CGameLogic						m_GameLogic;
 		tagGameServiceOption*			m_pGameServiceOption;
 	
 		//用户信息

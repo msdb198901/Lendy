@@ -10,6 +10,11 @@ namespace SubGame
 {
 	enum RedBlack
 	{
+		//索引定义
+		INDEX_PLAYER			=	0	,								//红家索引
+		INDEX_BANKER			=	1	,								//黑家索引
+
+
 		CARD_COUNT = 2,
 		MAX_CHIP_COUNT = 5,
 		USER_LIST_COUNT = 20,
@@ -37,8 +42,8 @@ namespace SubGame
 
 	enum GameStatus
 	{
-		GAME_SCENE_FREE			=	GAME_STATUS_FREE,					//等待开始
 		GAME_SCENE_BET			=	GAME_STATUS_FREE,					//下注状态
+		GAME_SCENE_BET_FINISH	=	GAME_STATUS_FREE+1,					//下注状态
 		GAME_SCENE_END			=	GAME_STATUS_PLAY,					//结束状态
 	};
 
@@ -46,6 +51,8 @@ namespace SubGame
 	{
 		//下注时间
 		IDI_PLACE_JETTON		=	2,									//下注时间
+
+		IDI_GAME_END			=	3,									//结束时间
 	};
 	
 	struct tagServerGameRecord

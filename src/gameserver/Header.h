@@ -51,6 +51,9 @@ namespace Game
 		//桌子范围
 		IDI_TABLE_MODULE_START  = 10000,								//起始标识
 		IDI_TABLE_MODULE_FINISH = 50000,								//终止标识
+
+
+		IDI_TABLE_SINK_RANGE	= 50,									//标识范围
 		IDI_TABLE_MODULE_RANGE	= 100,									//标识范围
 	};
 

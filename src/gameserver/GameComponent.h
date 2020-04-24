@@ -237,11 +237,6 @@ namespace Game
 		//坐下动作
 		virtual bool PerformSitDownAction(uint16 wChairID, IRoomUserItem * pIServerUserItem, const char* szPassword = nullptr) = 0;
 
-		//事件接口
-	public:
-		//时间事件
-		virtual bool OnTimerMessage(uint32 dwTimerID) = 0;
-
 		//时间接口
 	public:
 		//设置时间
@@ -292,6 +287,11 @@ namespace Game
 		virtual bool OnEventGetBetStatus(uint16 wChairID, IRoomUserItem * pIServerUserItem) = 0;
 		//游戏记录
 		virtual void OnGetGameRecord(void *GameRecord) = 0;
+
+		//事件接口
+	public:
+		//时间事件
+		virtual bool OnTimerMessage(uint32 dwTimerID) = 0;
 
 		//网络接口
 	public:

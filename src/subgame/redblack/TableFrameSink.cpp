@@ -183,7 +183,7 @@ namespace SubGame
 			case GER_NORMAL:		//常规结束	
 			{
 				//计算分数
-				uint64 lBankerWinScore = 0;// GameOver();
+				uint64 lBankerWinScore = GameOver();
 
 				//递增次数
 				m_wBankerTime++;
@@ -268,6 +268,7 @@ namespace SubGame
 					//发送消息					
 					m_pITableFrame->SendTableData(i, SUB_S_GAME_END, &GameEnd, sizeof(GameEnd));
 				}
+
 				//tagRBPerGameRecord GameRecord;
 				//GameRecord.wTableID = m_pITableFrame->GetTableID() + 1;
 				//GameRecord.cbAreaWin[0] = m_cbOpenResult[0];
@@ -292,6 +293,7 @@ namespace SubGame
 		switch (cbGameStatus)
 		{
 			case GAME_SCENE_BET:		//游戏状态
+			case GAME_SCENE_BET_FINISH:
 			case GAME_SCENE_END:		//结束状态
 			{
 				CMD_S_StatusPlay StatusPlay;
@@ -491,10 +493,46 @@ namespace SubGame
 	{
 		return false;
 	}
+
 	bool CTableFrameSink::OnTimerMessage(uint32 dwTimerID)
 	{
+		switch (dwTimerID)
+		{
+			case IDI_PLACE_JETTON:		//下注时间
+			{
+				//状态判断
+				if (m_pITableFrame->GetGameStatus() != GAME_SCENE_END)
+				{
+					//设置状态
+					m_pITableFrame->SetGameStatus(GAME_SCENE_BET_FINISH);
+
+					//设置时间
+					m_dwBetTime = (uint32)time(nullptr);
+					m_pITableFrame->SetGameTimer(IDI_GAME_END, m_cbEndTime * 1000, 1);
+				}
+				return true;
+			}
+			case IDI_GAME_END:
+			{
+				if (m_pITableFrame->GetGameStatus() != GAME_SCENE_BET_FINISH)
+				{
+					//设置状态
+					m_pITableFrame->SetGameStatus(GAME_SCENE_END);
+
+					//结束游戏
+					OnEventGameConclude(INVALID_CHAIR, nullptr, GER_NORMAL);
+
+					//结束游戏
+					m_pITableFrame->ConcludeGame(GAME_STATUS_FREE);
+
+					//开始游戏
+					m_pITableFrame->StartGame();
+				}
+			}
+		}
 		return false;
 	}
+
 	bool CTableFrameSink::OnGetUserListGameID(uint16 wSeatUser[MAX_SEAT_COUNT])
 	{
 		CMD_S_UserListInfo UserListInfo[GAME_PLAYER];
@@ -581,6 +619,179 @@ namespace SubGame
 		}
 		return true;
 	}
+
+	uint32 CTableFrameSink::GameOver()
+	{
+		//定义变量
+		uint64 lBankerWinScore = 0;
+		bool bSuccess = false;
+
+		//游戏记录
+		DispatchTableCard();
+
+		tagServerGameRecord& GameRecord = m_GameRecordArrary[m_dwRecordLast];
+		CalculateScore(lBankerWinScore, GameRecord);
+
+		//累计积分
+		m_lBankerWinScore += lBankerWinScore;
+
+		//当前积分
+		m_lBankerCurGameScore = lBankerWinScore;
+
+		//移动下标
+		m_dwRecordLast = (m_dwRecordLast + 1) % MAX_SCORE_HISTORY;
+		if (m_dwRecordLast == m_dwRecordFirst)
+		{
+			m_dwRecordLast = m_dwRecordFirst;
+			memset(m_GameRecordArrary, 0, sizeof(m_GameRecordArrary));
+		}
+		return lBankerWinScore;
+	}
+
+	uint64 CTableFrameSink::CalculateScore(uint64 & lBankerWinScore, tagServerGameRecord & GameRecord)
+	{
+		//计算牌点
+		uint8 cbPlayerCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_PLAYER], m_cbCardCount[INDEX_PLAYER]);
+		uint8 cbBankerCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_BANKER], m_cbCardCount[INDEX_BANKER]);
+
+		//系统输赢
+		uint64 lSystemScore = 0;
+
+		//推断玩家
+		uint8 cbWinArea[AREA_MAX] = { FALSE };
+		uint8 cbWinXian = m_GameLogic.CompareCard(m_cbTableCardArray[INDEX_PLAYER], m_cbTableCardArray[INDEX_BANKER], MAX_COUNT);
+		if (cbWinXian)
+		{
+			cbWinArea[AREA_XIAN] = TRUE;
+		}
+		else
+		{
+			cbWinArea[AREA_ZHUANG] = TRUE;
+		}
+		uint8 cbPointRed = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_PLAYER], MAX_COUNT);
+		uint8 cbPointBlack = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_BANKER], MAX_COUNT);
+		if (cbPointRed > 2 || cbPointBlack > 2)
+		{
+			cbWinArea[AREA_PING] = TRUE;
+		}
+		memcpy(m_cbOpenResult, cbWinArea, sizeof(cbWinArea));
+
+		//游戏记录
+		GameRecord.bPlayer = cbWinArea[AREA_XIAN] == TRUE;
+		GameRecord.bBanker = cbWinArea[AREA_ZHUANG] == TRUE;
+
+		//玩家成绩
+		uint64 lUserLostScore[GAME_PLAYER] = {};
+		memset(m_lPlayScore, 0, sizeof(m_lPlayScore));
+		memset(m_lUserWinScore, 0, sizeof(m_lUserWinScore));
+		memset(m_lUserRevenue, 0, sizeof(m_lUserRevenue));
+		memset(lUserLostScore, 0, sizeof(lUserLostScore));
+
+		//幸运一击
+		int pingPoint = 0;
+		int pingType = 0;
+		GameRecord.cbCardType = 1;
+
+		if (cbPlayerCount == 7 || cbBankerCount == 7)
+		{
+			pingPoint = 11;
+			pingType = 7;
+			GameRecord.cbCardType = 6;
+		}
+		else if (cbPlayerCount == 6 || cbBankerCount == 6)
+		{
+			pingPoint = 6;
+			pingType = 6;
+			GameRecord.cbCardType = 5;
+		}
+		else if (cbPlayerCount == 5 || cbBankerCount == 5)
+		{
+			pingPoint = 4;
+			pingType = 5;
+			GameRecord.cbCardType = 4;
+		}
+		else if (cbPlayerCount == 4 || cbBankerCount == 4)
+		{
+			pingPoint = 3;
+			pingType = 4;
+			GameRecord.cbCardType = 3;
+		}
+		else if (cbPlayerCount == 3 || cbBankerCount == 3)
+		{
+			pingPoint = 2;
+			pingType = 3;
+			GameRecord.cbCardType = 2;
+		}
+		GameRecord.cbPing = pingType > 0 ? TRUE : FALSE;
+
+		m_cbOpenResult[AREA_MAX] = GameRecord.cbCardType;
+
+		//计算积分
+		for (uint16 wChairID = 0; wChairID < GAME_PLAYER; ++wChairID)
+		{
+			//庄家判断
+			if (m_wCurrentBanker == wChairID) continue;
+
+			//获取用户
+			IRoomUserItem * pIServerUserItem = m_pITableFrame->GetTableUserItem(wChairID);
+			if (pIServerUserItem == nullptr) continue;
+
+			for (uint16 wAreaIndex = 0; wAreaIndex < AREA_MAX; ++wAreaIndex)
+			{
+
+				if (cbWinArea[wAreaIndex] == TRUE)
+				{
+					if (wAreaIndex == AREA_XIAN || wAreaIndex == AREA_ZHUANG)
+					{
+						m_lUserWinScore[wChairID] += m_lPlayBet[wChairID][wAreaIndex];
+						m_lPlayScore[wChairID][wAreaIndex] += m_lPlayBet[wChairID][wAreaIndex];
+						lBankerWinScore -= m_lPlayBet[wChairID][wAreaIndex];
+					}
+					else
+					{
+						m_lUserWinScore[wChairID] += (m_lPlayBet[wChairID][wAreaIndex] * (pingPoint - 1));
+						m_lPlayScore[wChairID][wAreaIndex] += (m_lPlayBet[wChairID][wAreaIndex] * (pingPoint - 1));
+						lBankerWinScore -= (m_lPlayBet[wChairID][wAreaIndex] * (pingPoint - 1));
+					}
+				}
+				else
+				{
+
+					lUserLostScore[wChairID] -= m_lPlayBet[wChairID][wAreaIndex];
+					m_lPlayScore[wChairID][wAreaIndex] -= m_lPlayBet[wChairID][wAreaIndex];
+					lBankerWinScore += m_lPlayBet[wChairID][wAreaIndex];
+				}
+			}
+
+			//总的分数
+			m_lUserWinScore[wChairID] += lUserLostScore[wChairID];
+
+			//计算税收
+			if (m_lUserWinScore[wChairID] > 0)
+			{
+				float fRevenuePer = float(m_pGameServiceOption->wRevenueRatio / 1000.0);
+				m_lUserRevenue[wChairID] = uint64(m_lUserWinScore[wChairID] * fRevenuePer);
+				m_lUserWinScore[wChairID] -= m_lUserRevenue[wChairID];
+			}
+		}
+		return lSystemScore;
+	}
+
+	void CTableFrameSink::DispatchTableCard()
+	{
+		//随机扑克
+		m_GameLogic.RandCardList(m_cbTableCardArray[0], sizeof(m_cbTableCardArray) / sizeof(m_cbTableCardArray[0][0]));
+
+		//首次发牌
+		m_cbCardCount[INDEX_PLAYER] = MAX_COUNT;
+		m_cbCardCount[INDEX_BANKER] = MAX_COUNT;
+
+		//计算点数
+		BYTE cbBankerCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_BANKER], m_cbCardCount[INDEX_BANKER]);
+		BYTE cbPlayerTwoCardCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_PLAYER], m_cbCardCount[INDEX_PLAYER]);
+		return;
+	}
+
 	void CTableFrameSink::ReadConfigInformation()
 	{
 		using namespace LogComm;

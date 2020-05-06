@@ -76,6 +76,7 @@ struct CMD_CS_S_RoomRemove
 
 //用户状态
 #define SUB_CS_C_USER_ENTER			1									//用户进入
+#define SUB_CS_C_USER_LEAVE			2									//用户离开
 #define SUB_CS_C_USER_STATUS		4									//用户状态
 //用户状态
 #define SUB_CS_S_COLLECT_REQUEST	100									//汇总请求
@@ -91,6 +92,13 @@ struct CMD_CS_C_UserEnter
 
 	//详细信息
 	Comm::tagUserInfo				userInfo;							//用户信息
+};
+
+
+//用户离开
+struct CMD_CS_C_UserLeave
+{
+	uint32							dwUserID;							//用户标识
 };
 
 

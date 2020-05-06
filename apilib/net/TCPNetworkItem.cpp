@@ -26,9 +26,11 @@ namespace Net
 
 	CTCPNetworkItem::~CTCPNetworkItem()
 	{
+#ifndef FORCE_CLOSE
 		m_closed = true;
 		asio::error_code ec;
 		m_socket.close(ec);
+#endif
 	}
 
 	void CTCPNetworkItem::Start()
@@ -133,13 +135,22 @@ namespace Net
 			return;
 		}
 			
+#ifndef FORCE_CLOSE
 		asio::error_code shutdownError;
 		m_socket.shutdown(asio::socket_base::shutdown_send, shutdownError);
 		if (shutdownError)
 		{
 			assert(nullptr);
 		}
-
+#else
+		m_closed = true;
+		asio::error_code err;
+		m_socket.close(err);
+		if (err)
+		{
+			assert(nullptr);
+		}
+#endif
 		OnClose();
 	}
 

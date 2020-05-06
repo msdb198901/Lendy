@@ -106,7 +106,10 @@ namespace Net
 
 		uint16											m_threadCount;
 		CTCPNetworkThread<CTCPNetworkItem>*				m_pThreads;
+
+#ifdef FORCE_CLOSE
 		std::deque<std::shared_ptr<CTCPNetworkItem>>	m_NetworkFreeItem;
+#endif
 
 		ITCPNetworkEngineEvent*							m_pITCPNetworkEngineEvent;			//事件接口
 

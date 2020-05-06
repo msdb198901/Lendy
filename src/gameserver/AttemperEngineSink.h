@@ -136,6 +136,8 @@ namespace Game
 	protected:
 		//用户坐下
 		bool OnTCPNetworkSubUserSitDown(void * pData, uint16 wDataSize, uint32 dwSocketID);
+		//用户起立
+		bool OnTCPNetworkSubUserStandUp(void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 		//执行功能
 	protected:

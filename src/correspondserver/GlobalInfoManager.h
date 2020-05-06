@@ -10,6 +10,33 @@ namespace Correspond
 {
 	using namespace Comm;
 
+	typedef std::vector<uint16>				GameRoomIDArray;
+	typedef GameRoomIDArray::iterator		G_IT;
+	typedef std::vector<uint32>				UserIDArray;
+	typedef UserIDArray::iterator			U_IT;
+
+	//用户信息
+	struct tagGlobalUserItem
+	{
+		tagUserInfo						gUserInfo;
+		GameRoomIDArray					vGameRoomID;		
+
+		//更新状态
+		void UpdateStatus(const uint16 wTableID, const uint16 wChairID, const uint8 cbUserStatus)
+		{
+			gUserInfo.wTableID = wTableID;
+			gUserInfo.wChairID = wChairID;
+			
+			gUserInfo.cbUserStatus = cbUserStatus;
+		}
+	};
+
+	struct tagGlobalRoomItem
+	{
+		tagGameRoom						gGameRoom;
+		UserIDArray						vUserID;
+	};
+
 	//全局信息
 	class CGlobalInfoManager
 	{
@@ -18,9 +45,13 @@ namespace Correspond
 		typedef std::vector<tagGameLogon*>		FreeGameLogonContainer;
 
 	public:
-		typedef std::map<uint16, tagGameRoom*>	ActiveGameRoomContainer;
-		typedef std::map<uint16, tagGameRoom*>::iterator	AGRC_IT;
-		typedef std::vector<tagGameRoom*>		FreeGameRoomContainer;
+		typedef std::map<uint16, tagGlobalRoomItem*>			ActiveGameRoomContainer;
+		typedef std::map<uint16, tagGlobalRoomItem*>::iterator	AGRC_IT;
+		typedef std::vector<tagGlobalRoomItem*>					FreeGameRoomContainer;
+
+		typedef std::map<uint32, tagGlobalUserItem*>			ActiveUserContainer;
+		typedef std::map<uint32, tagGlobalUserItem*>::iterator	AUC_IT;
+		typedef std::vector<tagGlobalUserItem*>					FreeUserContainer;
 
 		//广场管理
 	public:
@@ -40,9 +71,27 @@ namespace Correspond
 		//寻找房间
 		tagGameRoom * SearchRoomItem(uint16 wServerID);
 
+		//用户管理
+	public:
+		//删除用户
+		bool DeleteUserItem(uint32 dwUserID, uint16 wServerID);
+		//激活用户
+		bool ActiveUserItem(tagGlobalUserItem &GlobalUserInfo, uint16 wServerID);
+		
+		//用户查找
+	public:
+		//寻找用户
+		tagGlobalUserItem * SearchUserItemByUserID(uint32 dwUserID);
+
 	private:
 		tagGameLogon * CreateGlobalLogonItem();
-		tagGameRoom * CreateGlobalRoomItem();
+		tagGlobalRoomItem * CreateGlobalRoomItem();
+		tagGlobalUserItem * CreateGlobalUserItem();
+
+		//释放函数
+	private:
+		//释放用户
+		bool FreeGlobalUserItem(tagGlobalUserItem * pGlobalUserItem);
 
 	protected:
 		ActiveGameLogonContainer			m_ActiveGameLogon;
@@ -50,6 +99,9 @@ namespace Correspond
 
 		ActiveGameRoomContainer				m_ActiveGameRoom;
 		FreeGameRoomContainer				m_FreeGameRoom;
+
+		ActiveUserContainer					m_ActiveUserItem;
+		FreeUserContainer					m_FreeUserItem;
 	};
 
 }

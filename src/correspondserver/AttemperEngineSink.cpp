@@ -157,6 +157,10 @@ namespace Correspond
 			{
 				return OnTCPNetworkMainRegister(Command.wSubCmdID, pData, wDataSize, dwSocketID);
 			}
+			case MDM_CS_USER_COLLECT:
+			{
+				return OnTCPNetworkMainUserCollect(Command.wSubCmdID, pData, wDataSize, dwSocketID);
+			}
 		}
 		return false;
 	}
@@ -306,6 +310,76 @@ namespace Correspond
 
 	bool CAttemperEngineSink::OnTCPNetworkMainUserCollect(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
+		switch (wSubCmdID)
+		{
+			case SUB_CS_C_USER_ENTER:		//用户进入
+			{
+				//效验数据
+				assert(wDataSize == sizeof(CMD_CS_C_UserEnter));
+				if (wDataSize != sizeof(CMD_CS_C_UserEnter)) return false;
+
+				//消息处理
+				CMD_CS_C_UserEnter * pUserEnter = (CMD_CS_C_UserEnter *)pData;
+
+				//获取参数
+				uint16 wBindIndex = LOWORD(dwSocketID);
+				tagBindParameter * pBindParameter = (m_pBindParameter + wBindIndex);
+
+				//连接效验
+				assert(pBindParameter->ServiceKind == ServiceKind_Game);
+				if (pBindParameter->ServiceKind != ServiceKind_Game) return false;
+
+				//变量定义
+				tagGlobalUserItem GlobalUserInfo;
+				memset(&GlobalUserInfo.gUserInfo, 0, sizeof(GlobalUserInfo.gUserInfo));
+			
+				//拷贝信息
+				memcpy(&GlobalUserInfo.gUserInfo, &pUserEnter->userInfo, sizeof(tagUserInfo));
+
+				//激活用户
+				m_GlobalInfoManager.ActiveUserItem(GlobalUserInfo, pBindParameter->wServiceID);
+
+				return true;
+			}
+			case SUB_CS_C_USER_LEAVE:
+			{
+				//效验数据
+				assert(wDataSize == sizeof(CMD_CS_C_UserLeave));
+				if (wDataSize != sizeof(CMD_CS_C_UserLeave)) return false;
+
+				//消息处理
+				CMD_CS_C_UserLeave * pUserLeave = (CMD_CS_C_UserLeave *)pData;
+
+				//获取参数
+				uint16 wBindIndex = LOWORD(dwSocketID);
+				tagBindParameter * pBindParameter = (m_pBindParameter + wBindIndex);
+
+				//连接效验
+				assert(pBindParameter->ServiceKind == ServiceKind_Game);
+				if (pBindParameter->ServiceKind != ServiceKind_Game) return false;
+
+				//删除用户
+				m_GlobalInfoManager.DeleteUserItem(pUserLeave->dwUserID, pBindParameter->wServiceID);
+				return true;
+			}
+			case SUB_CS_C_USER_STATUS:
+			{
+				//效验数据
+				assert(wDataSize == sizeof(CMD_CS_C_UserStatus));
+				if (wDataSize != sizeof(CMD_CS_C_UserStatus)) return false;
+
+				//消息处理
+				CMD_CS_C_UserStatus * pUserStatus = (CMD_CS_C_UserStatus *)pData;
+
+				tagGlobalUserItem* pGlobalUserItem = m_GlobalInfoManager.SearchUserItemByUserID(pUserStatus->dwUserID);
+				if (pGlobalUserItem != nullptr)
+				{
+					pGlobalUserItem->UpdateStatus(pUserStatus->wTableID, pUserStatus->wChairID, pUserStatus->cbUserStatus);
+
+				}
+				return true;
+			}
+		}
 		return false;
 	}
 

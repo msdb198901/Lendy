@@ -138,6 +138,8 @@ namespace Game
 		virtual uint16 GetChairID() = 0;
 		//用户状态
 		virtual uint8 GetUserStatus() = 0;
+		//解除绑定
+		virtual bool DetachBindStatus() = 0;
 
 		//积分信息
 	public:

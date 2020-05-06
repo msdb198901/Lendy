@@ -418,13 +418,14 @@ namespace Net
 
 		//获取对象
 		std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem = nullptr;
+#ifdef FORCE_CLOSE
 		if (!m_NetworkFreeItem.empty())
 		{
 			pTCPNetworkItem = m_NetworkFreeItem.front();
 			m_NetworkFreeItem.pop_front();
 			pTCPNetworkItem->Attach(std::move(_socket));
 		}
-
+#endif
 		//创建对象
 		if (pTCPNetworkItem == nullptr)
 		{
@@ -464,7 +465,10 @@ namespace Net
 			m_BatchNetItemStore.erase(itBatch);
 		}
 		m_NetItemStore.erase(it);
+		
+#ifdef FORCE_CLOSE
 		m_NetworkFreeItem.push_back(pTCPNetworkItem);
+#endif
 		return true;
 	}
 

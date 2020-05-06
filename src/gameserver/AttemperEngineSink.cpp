@@ -180,8 +180,53 @@ namespace Game
 
 	bool CAttemperEngineSink::OnEventTCPNetworkShut(uint32 dwClientAddr, uint32 dwSocketID)
 	{
+		//变量定义
+		uint16 wBindIndex = LOWORD(dwSocketID);
+		tagBindParameter * pBindParameter = GetBindParameter(wBindIndex);
+		if (pBindParameter == nullptr) return false;
+
+		//获取用户
+		IRoomUserItem * pIServerUserItem = pBindParameter->pIServerUserItem;
+		uint16 wTableID = INVALID_WORD;
+
+		try
+		{
+			//用户处理
+			if (pIServerUserItem != nullptr)
+			{
+				//变量定义
+				wTableID = pIServerUserItem->GetTableID();
+
+				//断线处理
+				if (wTableID != INVALID_TABLE)
+				{
+					//解除绑定
+					pIServerUserItem->DetachBindStatus();
+					if (wTableID < m_pGameServiceOption->wTableCount)
+					{
+						//断线通知
+						assert(wTableID < m_pGameServiceOption->wTableCount);
+						//m_TableFrameArray[wTableID]->OnEventUserOffLine(pIServerUserItem);
+					}
+					else //先不处理看有什么问题
+					{
+
+					}
+				}
+				else
+				{
+					pIServerUserItem->SetUserStatus(US_NULL, INVALID_TABLE, INVALID_CHAIR);
+				}
+			}
+		}
+		catch (...)
+		{
+			LOG_INFO("server.game", "关闭连接异常: wTableID=%d", wTableID);
+		}
+
+		//清除信息
 		memset((m_pBindParameter + dwSocketID), 0, sizeof(tagBindParameter));
-		return true;
+		return false;
 	}
 
 	bool CAttemperEngineSink::OnEventTCPNetworkRead(Net::TCP_Command Command, void * pData, uint16 wDataSize, uint32 dwSocketID)
@@ -646,6 +691,10 @@ namespace Game
 			{
 				return OnTCPNetworkSubUserSitDown(pData, wDataSize, dwSocketID);
 			}
+			case SUB_GR_USER_STANDUP:		//用户起立
+			{
+				return OnTCPNetworkSubUserStandUp(pData, wDataSize, dwSocketID);
+			}
 		}
 		return false;
 	}
@@ -971,6 +1020,52 @@ namespace Game
 		return true;
 	}
 
+	bool CAttemperEngineSink::OnTCPNetworkSubUserStandUp(void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		//效验参数
+		CMD_GR_UserStandUp * pUserStandUp = (CMD_GR_UserStandUp *)pData;
+		if (nullptr == pUserStandUp || wDataSize != sizeof(CMD_GR_UserStandUp))
+		{
+			assert(false);
+			return false;
+		}
+
+		//获取用户
+		uint16 wBindIndex = LOWORD(dwSocketID);
+		IRoomUserItem * pIServerUserItem = GetBindUserItem(wBindIndex);
+
+		//用户效验
+		if (pIServerUserItem == NULL)
+		{
+			assert(false);
+			return false;
+		}
+	
+		//效验数据
+		if (pUserStandUp->wChairID >= m_pGameServiceOption->wChairCount) return false;
+		if (pUserStandUp->wTableID >= (uint16)m_TableFrameArray.size()) return false;
+
+		//消息处理
+		uint16 wTableID = pIServerUserItem->GetTableID();
+		uint16 wChairID = pIServerUserItem->GetChairID();
+		if ((wTableID != pUserStandUp->wTableID) || (wChairID != pUserStandUp->wChairID)) return true;
+
+		//用户判断
+		if ((pUserStandUp->cbForceLeave == 0) && (pIServerUserItem->GetUserStatus() == US_PLAYING))
+		{
+			SendRoomMessage(pIServerUserItem, TEXT("您正在游戏中，暂时不能离开，请先结束当前游戏！"), SMT_CHAT | SMT_EJECT | SMT_GLOBAL);
+			return true;
+		}
+
+		//离开处理
+		if (wTableID != INVALID_TABLE)
+		{
+			auto pTableFrame = m_TableFrameArray[wTableID];
+			if (!pTableFrame->PerformStandUpAction(pIServerUserItem)) return true;
+		}
+		return true;
+	}
+
 	bool CAttemperEngineSink::SwitchUserItemConnect(IRoomUserItem * pIServerUserItem, const char szMachineID[LEN_MACHINE_ID], uint16 wTargetIndex)
 	{
 		//效验参数
@@ -1108,6 +1203,23 @@ namespace Game
 
 	void CAttemperEngineSink::OnEventUserLogout(IRoomUserItem * pIServerUserItem, uint32 dwLeaveReason)
 	{
+		//TODO...DB
+
+		//汇总用户
+		{
+			//变量定义
+			CMD_CS_C_UserLeave UserLeave;
+			memset(&UserLeave, 0, sizeof(UserLeave));
+
+			//设置变量
+			UserLeave.dwUserID = pIServerUserItem->GetUserID();
+
+			//发送消息
+			m_pITCPSocketService->SendData(MDM_CS_USER_COLLECT, SUB_CS_C_USER_LEAVE, &UserLeave, sizeof(UserLeave));
+		}
+
+		//删除用户
+		m_ServerUserManager.DeleteUserItem(pIServerUserItem);
 	}
 
 	IRoomUserItem * CAttemperEngineSink::GetBindUserItem(uint16 wBindIndex)

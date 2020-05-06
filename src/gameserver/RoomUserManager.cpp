@@ -72,6 +72,17 @@ namespace Game
 	{
 		return m_UserInfo.cbUserStatus;
 	}
+	bool CRoomUserItem::DetachBindStatus()
+	{
+		//效验状态
+		assert(m_UserInfo.dwUserID != 0);
+		if (m_UserInfo.dwUserID == 0) return false;
+
+		m_wBindIndex = INVALID_WORD;
+		m_bClientReady = false;
+
+		return true;
+	}
 	uint64 CRoomUserItem::GetUserScore()
 	{
 		return m_UserInfo.lScore;
@@ -233,6 +244,24 @@ namespace Game
 	}
 	bool CRoomUserManager::DeleteUserItem(IRoomUserItem * pIServerUserItem)
 	{
+		//效验参数
+		assert((pIServerUserItem != nullptr) && (pIServerUserItem->GetUserStatus() == US_NULL));
+		if ((pIServerUserItem == nullptr) || (pIServerUserItem->GetUserStatus() != US_NULL)) return false;
+
+		//变量定义
+		uint32 dwUserID = pIServerUserItem->GetUserID();
+		RUIM_IT it = m_UserItemMap.find(dwUserID);
+		if (it != m_UserItemMap.end())
+		{
+			it->second->ResetUserItem();
+
+			m_FreeUserItem.emplace_back(it->second);
+			m_UserItemMap.erase(dwUserID);
+			return true;
+		}
+		
+		//错误断言
+		assert(nullptr);
 		return false;
 	}
 	bool CRoomUserManager::InsertUserItem(IRoomUserItem ** pIServerUserResult, tagUserInfo & UserInfo, tagUserInfoPlus &UserInfoPlus)

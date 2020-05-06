@@ -229,6 +229,14 @@ struct CMD_GR_UserSitDown
 	wchar_t							szPassword[LEN_PASSWORD];			//桌子密码
 };
 
+//起立请求
+struct CMD_GR_UserStandUp
+{
+	uint16							wTableID;							//桌子位置
+	uint16							wChairID;							//椅子位置
+	uint8							cbForceLeave;						//强行离开
+};
+
 //用户状态
 struct CMD_GR_UserStatus
 {

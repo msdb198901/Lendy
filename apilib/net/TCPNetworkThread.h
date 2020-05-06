@@ -142,7 +142,7 @@ namespace Net
 					{
 						_socket->CloseSocket();
 					}
-
+					
 					this->SocketRemoved(_socket);
 					--this->m_connections;
 					return true;

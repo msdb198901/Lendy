@@ -1,5 +1,7 @@
 #include "GameLogic.h"
 #include <string>
+#include <cassert>
+#include <cstring>
 
 namespace SubGame
 {

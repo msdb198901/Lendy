@@ -1,8 +1,8 @@
 #include "SHA1.h"
 #include "BigNumber.h"
 #include "StringUtility.h"
-#include <string>
-#include <stdarg.h>
+#include <cstring>
+#include <cstdarg>
 #include <sstream>
 
 namespace Util

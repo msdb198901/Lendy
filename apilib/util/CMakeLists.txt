@@ -11,6 +11,7 @@ list(APPEND PUBLIC_INCLUDES ${BUILDDIR}/vision_data.h)
 add_definitions(-DLENDY_API_EXPORT_COMMON)
 add_library(Util SHARED ${PRIVATE_SOURCES})
 set_target_properties(Util PROPERTIES FOLDER "KernelEngine") 
+set_target_properties(Util PROPERTIES PREFIX "")
 
 target_include_directories(Util
   PUBLIC
@@ -23,3 +24,4 @@ target_link_libraries(Util
     fmt
 	openssl
 	utf8cpp)
+

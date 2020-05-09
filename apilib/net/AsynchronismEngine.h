@@ -52,7 +52,7 @@ namespace Net
 		//辅助变量
 	private:
 		std::mutex							m_mutex;
-		BYTE								m_cbBuffer[SOCKET_TCP_BUFFER];	//接收缓冲
+		uint8								m_cbBuffer[SOCKET_TCP_BUFFER];	//接收缓冲
 		Util::DataQueue						m_dataQueue;
 	};
 }

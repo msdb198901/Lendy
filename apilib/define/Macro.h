@@ -41,7 +41,7 @@
 #  if LENDY_COMPILER == LENDY_COMPILER_MICROSOFT
 #    define LENDY_API_EXPORT __declspec(dllexport)
 #    define LENDY_API_IMPORT __declspec(dllimport)
-#  elif LENDY_COMPILER == TRINITY_COMPILER_GNU
+#  elif LENDY_COMPILER == LENDY_COMPILER_GNU
 #    define LENDY_API_EXPORT __attribute__((visibility("default")))
 #    define LENDY_API_IMPORT
 #  else
@@ -116,7 +116,46 @@ public : \
 inline varType& get_##varName(void) {return m_##varName;}\
 inline void register_##varName(varType var) { m_##varName = var;}
 
+//linux宏
+#if LENDY_PLATFORM == LENDY_PLATFORM_UNIX
+
+#define __max(a,b) (((a) > (b)) ? (a) : (b))
+#define __min(a,b) (((a) < (b)) ? (a) : (b))
+
+#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),  (mode)))==nullptr
+
+#define LOWORD(l)           ((uint16)(((uint64)(l)) & 0xffff))
+
+#ifndef SOCKET
+#	define SOCKET int
+#endif
+
+#ifndef SOCKET_ERROR
+#   define SOCKET_ERROR -1
+#endif
+
+#ifndef INVALID_SOCKET
+#   define INVALID_SOCKET (SOCKET)(~0)
+#endif
+
+#ifndef TRUE
+#	define TRUE 1
+#endif
+
+#ifndef FALSE
+#	define FALSE 0
+#endif
+
+#endif
+
+//针对linux
+#if (__cplusplus >= 201402L) || (defined(_MSC_VER) && _MSC_VER >= 1800)
+#define LENDY_COMPILER_14
+#endif
+
+#define SZFMTD "%" PRIuPTR
+
 //强制关闭
-#define FORCE_CLOSE	
+#define LENDY_SOCKET_FORCE_CLOSE	
 
 #endif

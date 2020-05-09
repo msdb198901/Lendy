@@ -10,15 +10,19 @@ target_compile_features(lendy-feature-interface
     cxx_auto_type
     cxx_constexpr
     cxx_decltype
-    cxx_decltype_auto
+ 
     cxx_final
     cxx_lambdas
-    cxx_generic_lambdas
+    
     cxx_variadic_templates
     cxx_defaulted_functions
     cxx_nullptr
     cxx_trailing_return_types
-    cxx_return_type_deduction)
+
+    #cxx_decltype_auto
+    #cxx_generic_lambdas
+    #cxx_return_type_deduction
+    )
 
 
 add_library(lendy-warning-interface INTERFACE)
@@ -39,6 +43,10 @@ else()
   target_compile_options(lendy-no-warning-interface
     INTERFACE
       -w)
+  target_link_libraries(lendy-default-interface
+    INTERFACE
+	  dl
+	  pthread)
 endif()
 
 add_library(lendy-hidden-symbols-interface INTERFACE)

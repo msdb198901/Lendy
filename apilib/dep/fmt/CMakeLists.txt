@@ -29,6 +29,7 @@ endif()
 
 add_library(fmt STATIC ${FMT_SOURCES})
 set_target_properties(fmt PROPERTIES FOLDER "KernelEngine") 
+set_target_properties(fmt PROPERTIES PREFIX "")
 
 target_include_directories(fmt
   PUBLIC
@@ -41,3 +42,7 @@ target_compile_definitions(fmt
     -DFMT_USE_RVALUE_REFERENCES
     -DFMT_USE_DELETED_FUNCTIONS
     -DFMT_USE_EXTERN_TEMPLATES)
+
+target_link_libraries(fmt
+  PRIVATE
+    lendy-dependency-interface)

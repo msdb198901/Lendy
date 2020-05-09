@@ -7,6 +7,19 @@
 #include "LogConsole.h"
 #include <memory>
 
+#ifdef LENDY_COMPILER_14
+using std::make_unique;
+#else
+namespace std
+{
+	template<typename T, typename... Ts>
+	std::unique_ptr<T> make_unique(Ts&&... params)
+	{
+		return std::unique_ptr<T>(new T(std::forward<Ts>(params)...));
+	}
+}
+#endif
+
 namespace LogComm
 {
 	class LENDY_COMMON_API Log
@@ -74,6 +87,7 @@ namespace LogComm
         }																\
     }
 
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS							
 #define LOG_MESSAGE_BODY(filterType__, level__, ...)					\
         __pragma(warning(push))                                         \
         __pragma(warning(disable:4127))                                 \
@@ -82,6 +96,13 @@ namespace LogComm
                 LOG_EXCEPTION_FREE(filterType__, level__, __VA_ARGS__); \
         } while (0)                                                     \
         __pragma(warning(pop))
+#else
+#define LOG_MESSAGE_BODY(filterType__, level__, ...)					\
+        do {                                                            \
+            if (sLogMgr->ShouldLog(level__))							\
+                LOG_EXCEPTION_FREE(filterType__, level__, __VA_ARGS__); \
+        } while (0)                                                     
+#endif
 
 #define LOG_TRACE(filterType__, ...) \
     LOG_MESSAGE_BODY(filterType__, LOG_LEVEL_TRACE, __VA_ARGS__)

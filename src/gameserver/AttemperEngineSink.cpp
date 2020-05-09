@@ -109,8 +109,8 @@ namespace Game
 			RegisterRoom.wTableCount		= m_pGameServiceOption->wTableCount;
 			RegisterRoom.dwServerRule		= 0;//vCustomRule
 
-			sprintf_s(RegisterRoom.szServerName, "%s", m_pGameServiceOption->strGameName);
-			sprintf_s(RegisterRoom.szServerAddr, "%s", m_pGameAddressOption->szIP);
+			snprintf(RegisterRoom.szServerName, sizeof(RegisterRoom.szServerName), "%s", m_pGameServiceOption->strGameName);
+			snprintf(RegisterRoom.szServerAddr, sizeof(RegisterRoom.szServerAddr), "%s", m_pGameAddressOption->szIP);
 
 			//发送数据
 			m_pITCPSocketService->SendData(MDM_CS_REGISTER, SUB_CS_C_REGISTER_ROOM, &RegisterRoom, sizeof(RegisterRoom));
@@ -336,9 +336,10 @@ namespace Game
 
 			//构造数据
 			SystemMessage.wType = wType;
-			SystemMessage.wLength = lstrlen(lpszMessage) + 1;
+			SystemMessage.wLength = strlen(lpszMessage) + 1;
+
 			std::wstring wstrMessage = Util::StringUtility::StringToWString(lpszMessage);
-			swprintf_s(SystemMessage.szString, wstrMessage.c_str(), sizeof(SystemMessage.szString));
+			swprintf(SystemMessage.szString, sizeof(SystemMessage.szString), L"%s", wstrMessage.c_str());
 
 			//变量定义
 			uint32 dwUserIndex = pIServerUserItem->GetBindIndex();
@@ -463,7 +464,7 @@ namespace Game
 		if (pIServerUserItem->GetUserStatus() == US_NULL)
 		{
 			//获取绑定
-			WORD wBindIndex = pIServerUserItem->GetBindIndex();
+			uint16 wBindIndex = pIServerUserItem->GetBindIndex();
 			tagBindParameter * pBindParameter = GetBindParameter(wBindIndex);
 
 			//绑带处理
@@ -523,8 +524,8 @@ namespace Game
 		pUserInfoHead->lScore = pUserInfo->lScore;
 
 		std::wstring wstrNickName = Util::StringUtility::StringToWString(pUserInfo->szNickName);
-		swprintf_s(pUserInfoHead->szNickName, wstrNickName.c_str(), sizeof(pUserInfoHead->szNickName));
-		
+		swprintf(pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%s", wstrNickName.c_str());
+
 		if (dwSocketID == INVALID_DWORD)
 		{
 			SendUserInfoPacketBatch(pIServerUserItem, INVALID_DWORD);
@@ -544,7 +545,7 @@ namespace Game
 		if (pIServerUserItem == NULL) return false;
 
 		//变量定义
-		BYTE cbBuffer[SOCKET_TCP_PACKET] = {};
+		uint8 cbBuffer[SOCKET_TCP_PACKET] = {};
 		tagUserInfo * pUserInfo = pIServerUserItem->GetUserInfo();
 		CMD_GR_MobileUserInfoHead * pUserInfoHead = (CMD_GR_MobileUserInfoHead *)cbBuffer;
 
@@ -571,8 +572,8 @@ namespace Game
 		pUserInfoHead->lScore = pUserInfo->lScore;
 
 		std::wstring wstrNickName = Util::StringUtility::StringToWString(pUserInfo->szNickName);
-		swprintf_s(pUserInfoHead->szNickName, wstrNickName.c_str(), sizeof(pUserInfoHead->szNickName));
-
+		swprintf(pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%s", wstrNickName.c_str());
+	
 		//发送数据
 		uint16 wHeadSize = sizeof(CMD_GR_MobileUserInfoHead);
 		if (dwSocketID == INVALID_DWORD)
@@ -778,6 +779,7 @@ namespace Game
 		//断线重连
 		std::string strLogonPass = Util::StringUtility::WStringToString(pLogonMobile->szPassword);
 		std::string strMachineID = Util::StringUtility::WStringToString(pLogonMobile->szMachineID);
+
 		IRoomUserItem * pIServerUserItem = m_ServerUserManager.SearchUserItem(pLogonMobile->dwUserID);
 		if ((pIServerUserItem != NULL) && (pIServerUserItem->ContrastLogonPass(strLogonPass.c_str()) == true))
 		{
@@ -829,9 +831,9 @@ namespace Game
 		}
 
 		//满人判断
-		WORD wMaxPlayer = m_pGameServiceOption->wMaxPlayer;
-		DWORD dwOnlineCount = m_ServerUserManager.GetUserItemCount();
-		if (dwOnlineCount > (DWORD)(wMaxPlayer))
+		uint16 wMaxPlayer = m_pGameServiceOption->wMaxPlayer;
+		uint32 dwOnlineCount = m_ServerUserManager.GetUserItemCount();
+		if (dwOnlineCount > (uint32)(wMaxPlayer))
 		{
 			SendLogonFailure(LogonError[LEC_ROOM_FULL].c_str(), LEC_ROOM_FULL, pBindParameter->dwSocketID);
 			PerformUnlockScore(pLogonMobile->dwUserID, 0/* pDBOLogonSuccess->dwInoutIndex*/, LER_SERVER_FULL);
@@ -854,7 +856,7 @@ namespace Game
 		UserInfo.wFaceID = 0;
 		UserInfo.dwUserID = pLogonMobile->dwUserID;
 		UserInfo.dwGameID = pLogonMobile->dwUserID;
-		sprintf_s(UserInfo.szNickName, "%s", strAnsiNickName.c_str());
+		snprintf(UserInfo.szNickName, sizeof(UserInfo.szNickName), "%s", strAnsiNickName.c_str());
 
 		//用户资料
 		UserInfo.cbGender = 0;
@@ -876,12 +878,12 @@ namespace Game
 
 		//辅助变量
 		UserInfoPlus.lLimitScore = 10;
-		sprintf_s(UserInfoPlus.szPassword, "%s", sha_pass_hash.c_str());
+		snprintf(UserInfoPlus.szPassword, sizeof(UserInfoPlus.szPassword), "%s", sha_pass_hash.c_str());
 
 		//连接信息
 		UserInfoPlus.wBindIndex = wBindIndex;
 		UserInfoPlus.dwClientAddr = pBindParameter->dwClientAddr;
-		sprintf_s(UserInfoPlus.szMachineID, "%s", strMachineID.c_str());
+		snprintf(UserInfoPlus.szMachineID, sizeof(UserInfoPlus.szMachineID), "%s", strMachineID.c_str());
 
 		//激活用户
 		m_ServerUserManager.InsertUserItem(&pIServerUserItem, UserInfo, UserInfoPlus);
@@ -911,7 +913,7 @@ namespace Game
 			//设置变量
 			UserEnter.dwUserID = pIServerUserItem->GetUserID();
 			UserEnter.dwGameID = pIServerUserItem->GetGameID();
-			sprintf_s(UserEnter.szNickName, "%s", pIServerUserItem->GetNickName());
+			snprintf(UserEnter.szNickName, sizeof(UserEnter.szNickName), "%s", pIServerUserItem->GetNickName());
 
 			//用户详细信息
 			tagUserInfo* pUserInfo = pIServerUserItem->GetUserInfo();
@@ -1015,8 +1017,9 @@ namespace Game
 		}
 
 		//坐下处理
+		std::string strPWD = Util::StringUtility::WStringToString(pUserSitDown->szPassword);
 		CTableFrame * pTableFrame = m_TableFrameArray[wRequestTableID];
-		pTableFrame->PerformSitDownAction(wRequestChairID, pIServerUserItem, Util::StringUtility::WStringToString(pUserSitDown->szPassword).c_str());
+		pTableFrame->PerformSitDownAction(wRequestChairID, pIServerUserItem, strPWD.c_str());
 		return true;
 	}
 
@@ -1053,7 +1056,7 @@ namespace Game
 		//用户判断
 		if ((pUserStandUp->cbForceLeave == 0) && (pIServerUserItem->GetUserStatus() == US_PLAYING))
 		{
-			SendRoomMessage(pIServerUserItem, TEXT("您正在游戏中，暂时不能离开，请先结束当前游戏！"), SMT_CHAT | SMT_EJECT | SMT_GLOBAL);
+			SendRoomMessage(pIServerUserItem, "您正在游戏中，暂时不能离开，请先结束当前游戏！", SMT_CHAT | SMT_EJECT | SMT_GLOBAL);
 			return true;
 		}
 
@@ -1176,25 +1179,15 @@ namespace Game
 		for (uint16 i = 0; i < TableInfo.wTableCount; i++)
 		{
 			CTableFrame * pTableFrame = m_TableFrameArray[i];
-			TableInfo.TableStatusArray[i].cbTableLock = 0;//pTableFrame->IsTableLocked() ? TRUE : FALSE;
-			TableInfo.TableStatusArray[i].cbPlayStatus = 0;//pTableFrame->IsTableStarted() ? TRUE : FALSE;
-			TableInfo.TableStatusArray[i].lCellScore = 1;//pTableFrame->GetCellScore();
+			TableInfo.TableStatusArray[i].cbTableLock = 0;
+			TableInfo.TableStatusArray[i].cbPlayStatus = 0;
+			TableInfo.TableStatusArray[i].lCellScore = 1;
 		}
 
 		//桌子状态
 		uint16 wHeadSize = sizeof(TableInfo) - sizeof(TableInfo.TableStatusArray);
 		uint16 wSendSize = wHeadSize + TableInfo.wTableCount * sizeof(TableInfo.TableStatusArray[0]);
 		SendData(pBindParameter->dwSocketID, MDM_GR_STATUS, SUB_GR_TABLE_INFO, &TableInfo, wSendSize);
-
-		////立即登录
-		//if (pIServerUserItem->GetTableID() == INVALID_TABLE)
-		//{
-		//	WORD wMobileUserRule = pIServerUserItem->GetMobileUserRule();
-		//	if ((wMobileUserRule&BEHAVIOR_LOGON_IMMEDIATELY) != 0)
-		//	{
-		//		MobileUserImmediately(pIServerUserItem);
-		//	}
-		//}
 
 		//网络设置
 		m_pITCPNetworkEngine->AllowBatchSend(pBindParameter->dwSocketID, true);
@@ -1260,8 +1253,9 @@ namespace Game
 		memset(&LogonFailure, 0, sizeof(LogonFailure));
 
 		LogonFailure.lResultCode = lErrorCode;
+		
 		std::wstring wstrLogonError = Util::StringUtility::StringToWString(pszString);
-		swprintf_s(LogonFailure.szDescribeString, L"%s", wstrLogonError.c_str());
+		swprintf(LogonFailure.szDescribeString, sizeof(LogonFailure.szDescribeString), L"%s", wstrLogonError.c_str());
 
 		return m_pITCPNetworkEngine->SendData(dwSocketID, MDM_GR_LOGON, SUB_GR_LOGON_FAILURE, &LogonFailure, sizeof(LogonFailure));
 	}
@@ -1276,7 +1270,7 @@ namespace Game
 		UserRequestFailure.lErrorCode = lErrorCode;
 		
 		std::wstring wstrDescribe = Util::StringUtility::StringToWString(pszDescribe);
-		swprintf_s(UserRequestFailure.szDescribeString, L"%s", wstrDescribe.c_str());
+		swprintf(UserRequestFailure.szDescribeString, sizeof(UserRequestFailure.szDescribeString), L"%s", wstrDescribe.c_str());
 
 		//发送数据
 		SendData(pIServerUserItem, MDM_GR_USER, SUB_GR_USER_REQUEST_FAILURE, &UserRequestFailure, sizeof(UserRequestFailure));

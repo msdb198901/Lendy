@@ -86,7 +86,7 @@ namespace DB
 #else
 		if (m_connectionInfo.host == ".")
 		{
-			uint32 opt = MYSQL_PROTOCOL_SOCKTET;
+			uint32 opt = MYSQL_PROTOCOL_SOCKET;
 			mysql_options(mysqlInit, MYSQL_OPT_PROTOCOL, (char const*)&opt);
 			m_connectionInfo.host = "localhost";
 			port = 0;

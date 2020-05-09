@@ -74,8 +74,8 @@ namespace LogComm
 
 		if (m_dynamicName)
 		{
-			char namebuf[PATH_MAX] = {};
-			snprintf(namebuf, PATH_MAX, m_fileName.c_str(), message->param1.c_str());
+			char namebuf[FILE_PATH_MAX] = {};
+			snprintf(namebuf, FILE_PATH_MAX, m_fileName.c_str(), message->param1.c_str());
 
 			FILE* file = OpenFile(namebuf, "a", m_backup || exceedMaxSize);
 			if (!file)

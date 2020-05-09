@@ -22,11 +22,12 @@ typedef uint8_t uint8;
 typedef volatile int vint;
 typedef unsigned char dwSocket;
 typedef unsigned long ulong;
+typedef unsigned long long ullong;
 typedef uint64 uuid64;
 
 namespace Comm
 {
-	static const int PATH_MAX = 256;
+	static const int FILE_PATH_MAX = 256;
 
 	////////////////////////网狐框架常用变量
 	//帐号长度

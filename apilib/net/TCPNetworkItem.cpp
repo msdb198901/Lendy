@@ -26,7 +26,7 @@ namespace Net
 
 	CTCPNetworkItem::~CTCPNetworkItem()
 	{
-#ifndef FORCE_CLOSE
+#ifndef LENDY_SOCKET_FORCE_CLOSE
 		m_closed = true;
 		asio::error_code ec;
 		m_socket.close(ec);
@@ -135,7 +135,7 @@ namespace Net
 			return;
 		}
 			
-#ifndef FORCE_CLOSE
+#ifndef LENDY_SOCKET_FORCE_CLOSE
 		asio::error_code shutdownError;
 		m_socket.shutdown(asio::socket_base::shutdown_send, shutdownError);
 		if (shutdownError)
@@ -208,15 +208,15 @@ namespace Net
 				//数据判断
 				if (wPacketSize > SOCKET_TCP_BUFFER)
 				{
-					throw TEXT("数据包长度太长");
+					throw "数据包长度太长";
 				}
 				if (wPacketSize < sizeof(TCP_Head))
 				{
-					throw TEXT("数据包长度太短");
+					throw "数据包长度太短";
 				}
 				if (pHead->TCPInfo.cbDataKind != DK_MAPPED && pHead->TCPInfo.cbDataKind != 0x05)
 				{
-					throw TEXT("数据包版本不匹配");
+					throw "数据包版本不匹配";
 				}
 
 				//完成判断
@@ -286,7 +286,7 @@ namespace Net
 		assert(wDataSize >= sizeof(TCP_Head));
 		assert(wDataSize <= (sizeof(TCP_Head) + SOCKET_TCP_BUFFER));
 		(void)wBufferSize;
-		//assert(wBufferSize >= (wDataSize + 2 * sizeof(DWORD)));
+		//assert(wBufferSize >= (wDataSize + 2 * sizeof(uint32)));
 
 		//填写信息头
 		TCP_Head * pHead = (TCP_Head *)pcbDataBuffer;

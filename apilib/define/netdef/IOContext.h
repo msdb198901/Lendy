@@ -47,16 +47,26 @@ namespace Net
 	};
 
 	template <typename T>
+#ifdef LENDY_COMPILER_14
 	inline decltype(auto) post(asio::io_context &io, T&& t)
 	{
 		return asio::post(io, std::forward<T>(t));
 	}
+#else
+	inline void post(asio::io_context &io, T&& t)
+	{
+		asio::post(io, std::forward<T>(t));
+		return;
+	}
+#endif
 
+#ifdef LENDY_COMPILER_14
 	template<typename T>
 	inline decltype(auto) get_io_context(T&& io)
 	{
 		return io.get_executor().context();
 	}
+#endif
 }
 
 #endif

@@ -13,7 +13,11 @@ namespace Net
 	};
 
 	template<typename T>
+#ifdef LENDY_COMPILER_14
 	inline decltype(auto) bind_executor(Strand& strand, T&& t)
+#else
+	inline auto bind_executor(Strand& strand, T&& t)
+#endif
 	{
 		return strand.wrap(std::forward<T>(t));
 	}

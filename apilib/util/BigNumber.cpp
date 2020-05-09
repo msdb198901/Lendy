@@ -1,8 +1,7 @@
 #include "BigNumber.h"
 #include <openssl/bn.h>
-#include <string>
+#include <cstring>
 #include <algorithm>
-#include <memory>
 #include <assert.h>
 
 namespace Util

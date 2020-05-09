@@ -101,7 +101,7 @@ namespace Net
 		//½á¹ûÅÐ¶Ï
 		if (m_pIAttemperEngineSink == nullptr)
 		{
-			assert(FALSE);
+			assert(nullptr);
 			return false;
 		}
 		return true;

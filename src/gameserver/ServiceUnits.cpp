@@ -102,8 +102,7 @@ namespace Game
 			if (*it == "-h")
 			{
 				++it;
-				sprintf_s(m_GameAddressOption.szIP, "%s", (*it).c_str());
-				//sprintf_s(m_GameAddressOption.szIP, "%s", (*it).c_str());
+				snprintf(m_GameAddressOption.szIP, sizeof(m_GameAddressOption.szIP), "%s", (*it).c_str());
 				LOG_INFO("server.game", "Host:%s", m_GameAddressOption.szIP);
 			}
 			//Port
@@ -133,7 +132,7 @@ namespace Game
 		//-h 192.168.1.217 - p 7000 - s 1 - t 200 - m 1
 		if (argc <= 1)
 		{
-			sprintf_s(m_GameAddressOption.szIP, "192.168.1.217");
+			snprintf(m_GameAddressOption.szIP, sizeof(m_GameAddressOption.szIP), "%s", "192.168.1.217");
 			m_GameAddressOption.wPort = 7000;
 			m_GameAddressOption.wKindID = 104;
 			m_GameAddressOption.wThreadCount = 3;
@@ -160,11 +159,11 @@ namespace Game
 
 		m_GameServiceOption.wMaxPlayer = sConfigMgr->GetInt32(strSection, "MaxPlayer", 0);
 		
-		sprintf_s(m_GameServiceOption.strGameName, "%s", sConfigMgr->Get(strSection, "GameName", "").c_str());
+		snprintf(m_GameServiceOption.strGameName, sizeof(m_GameServiceOption.strGameName), "%s", sConfigMgr->Get(strSection, "GameName", "").c_str());
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 		sprintf_s(m_GameServiceOption.strServerDLLName, "%s.dll", sConfigMgr->Get(strSection, "ServerDLLName", "").c_str());
 #else
-		sprintf_s(m_GameServiceOption.strServerDLLName, "%s.so", sConfigMgr->Get(strSection, "ServerDLLName", "").c_str());
+		snprintf(m_GameServiceOption.strServerDLLName, sizeof(m_GameServiceOption.strServerDLLName), "%s.so", sConfigMgr->Get(strSection, "ServerDLLName", "").c_str());
 #endif
 		//ÓÎÏ·¹æÔò
 		std::string strRule = sConfigMgr->Get(strSection, "CustomRule", "");

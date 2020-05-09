@@ -191,7 +191,7 @@ namespace Correspond
 
 					//设置变量
 					RegisterFailure.lErrorCode = 0L;
-					sprintf_s(RegisterFailure.szDescribeString, "服务器注册失败，“服务地址”与“服务器名”不合法！");
+					snprintf(RegisterFailure.szDescribeString, sizeof(RegisterFailure.szDescribeString), "%s", "服务器注册失败，“服务地址”与“服务器名”不合法！");
 
 					//发送消息
 					uint16 wStringSize = strlen(RegisterFailure.szDescribeString) + 1;
@@ -214,8 +214,8 @@ namespace Correspond
 
 				//构造数据
 				GameLogon.wPlazaID = wBindIndex;
-				sprintf_s(GameLogon.szServerName, pRegisterLogon->szServerName, sizeof(GameLogon.szServerName));
-				sprintf_s(GameLogon.szServerAddr, pRegisterLogon->szServerAddr, sizeof(GameLogon.szServerAddr));
+				snprintf(GameLogon.szServerName, sizeof(GameLogon.szServerName), "%s", pRegisterLogon->szServerName);
+				snprintf(GameLogon.szServerAddr, sizeof(GameLogon.szServerAddr), "%s", pRegisterLogon->szServerAddr);
 
 				//注册房间
 				m_GlobalInfoManager.ActiveLogonItem(GameLogon);
@@ -246,7 +246,7 @@ namespace Correspond
 
 					//设置变量
 					RegisterFailure.lErrorCode = 0L;
-					sprintf_s(RegisterFailure.szDescribeString, "已经存在相同标识的游戏房间服务，房间服务注册失败");
+					snprintf(RegisterFailure.szDescribeString, sizeof(RegisterFailure.szDescribeString), "%s", "已经存在相同标识的游戏房间服务，房间服务注册失败");
 
 					//发送消息
 					uint16 wStringSize = strlen(RegisterFailure.szDescribeString) + 1;
@@ -260,7 +260,7 @@ namespace Correspond
 				}
 
 				//设置绑定
-				WORD wBindIndex = LOWORD(dwSocketID);
+				uint16 wBindIndex = LOWORD(dwSocketID);
 				(m_pBindParameter + wBindIndex)->ServiceKind = ServiceKind_Game;
 				(m_pBindParameter + wBindIndex)->wServiceID = pRegisterRoom->wServerID;
 
@@ -276,8 +276,9 @@ namespace Correspond
 				GameRoom.dwFullCount = pRegisterRoom->dwFullCount;
 				GameRoom.wTableCount = pRegisterRoom->wTableCount;
 				GameRoom.dwServerRule = pRegisterRoom->dwServerRule;
-				sprintf_s(GameRoom.szServerAddr, pRegisterRoom->szServerAddr, sizeof(GameRoom.szServerAddr));
-				sprintf_s(GameRoom.szServerName, pRegisterRoom->szServerName, sizeof(GameRoom.szServerName));
+
+				snprintf(GameRoom.szServerName, sizeof(GameRoom.szServerName), "%s", pRegisterRoom->szServerAddr);
+				snprintf(GameRoom.szServerAddr, sizeof(GameRoom.szServerAddr), "%s", pRegisterRoom->szServerName);
 
 				//注册房间
 				m_GlobalInfoManager.ActiveRoomItem(GameRoom);

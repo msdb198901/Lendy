@@ -1,5 +1,5 @@
 #include "DataQueue.h"
-#include <memory>
+#include <cstring>
 #include <algorithm>
 #include <assert.h>
 

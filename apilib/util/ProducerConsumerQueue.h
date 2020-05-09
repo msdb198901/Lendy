@@ -17,7 +17,7 @@ namespace Util
 
 		void Push(const T& value)
 		{
-			std::lock_guard<std::mutext> _lock(m_queueLock);
+			std::lock_guard<std::mutex> _lock(m_queueLock);
 			m_queue.push(std::move(value));
 			m_condition.notify_one();
 		}

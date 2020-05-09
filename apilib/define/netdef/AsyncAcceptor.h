@@ -90,7 +90,7 @@ namespace Net
 			}
 
 #if LENDY_PLATFORM != LENDY_PLATFORM_WINDOWS
-			m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true), errorCode);
+			m_acceptor.set_option(asio::ip::tcp::acceptor::reuse_address(true), ec);
 			if (ec)
 			{
 				return false;

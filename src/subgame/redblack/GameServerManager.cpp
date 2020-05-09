@@ -35,9 +35,9 @@ namespace SubGame
 		try
 		{
 			pTableFrameSink = new CTableFrameSink();
-			if (pTableFrameSink == nullptr) throw TEXT("创建失败");
+			if (pTableFrameSink == nullptr) throw "创建失败";
 			void * pObject = pTableFrameSink->QueryInterface(Guid);
-			if (pObject == nullptr) throw TEXT("接口查询失败");
+			if (pObject == nullptr) throw "接口查询失败";
 			return pObject;
 		}
 		catch (...) {}

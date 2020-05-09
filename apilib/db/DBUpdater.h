@@ -6,12 +6,17 @@
 #include <set>
 #include <unordered_map>
 #include <string>
+#include <vector>
+#ifdef LENDY_COMPILER_14
 #include <filesystem>
+#endif
 
 namespace DB
 {
+#ifdef LENDY_COMPILER_14
 	typedef std::tr2::sys::path Path;
 	using namespace std::tr2::sys;
+#endif
 
 	///////////////////ÌáÈ¡Æ÷////////////////
 	enum UpdateMode
@@ -33,10 +38,17 @@ namespace DB
 	class UpdateFetcher
 	{
 	public:
+#ifdef LENDY_COMPILER_14
 		UpdateFetcher(Path const& updateDirectory,
 			std::function<void(std::string const&)> const& apply,
 			std::function<void(Path const& path)> const& applyFile,
 			std::function<QueryResult(std::string const&)> const& retrieve);
+#else
+		UpdateFetcher(std::string const& updateDirectory,
+			std::function<void(std::string const&)> const& apply,
+			std::function<void(std::string const& path)> const& applyFile,
+			std::function<QueryResult(std::string const&)> const& retrieve);
+#endif
 
 		~UpdateFetcher();
 
@@ -45,7 +57,11 @@ namespace DB
 
 	private:
 		
+#ifdef LENDY_COMPILER_14
 		typedef std::pair<Path, State> LocaleFileEntry;
+#else
+		typedef std::pair<std::string, State> LocaleFileEntry;
+#endif
 		struct PathCompare
 		{
 			bool operator()(LocaleFileEntry const& left, LocaleFileEntry const& right) const;
@@ -57,15 +73,27 @@ namespace DB
 		typedef std::vector<DirectoryEntry> DirectoryStorage;
 
 		LocaleFileStorage GetFileList() const;
+
+#ifdef LENDY_COMPILER_14
 		void FillFileListRecursively(Path const& path, LocaleFileStorage& storage,
 			State const state, uint32 const depth) const;
+#else
+		void FillFileListRecursively(std::string const& path, LocaleFileStorage& storage,
+			State const state, uint32 const depth) const;
+#endif
 
 		DirectoryStorage ReceiveIncludedDirectories() const;
 		AppliedFileStorage ReceiveAppliedFiles() const;
 
+#ifdef LENDY_COMPILER_14
 		std::string ReadSQLUpdate(Path const& file) const;
 
 		uint32 Apply(Path const& path) const;
+#else
+		std::string ReadSQLUpdate(std::string const& file) const;
+
+		uint32 Apply(std::string const& path) const;
+#endif
 
 		void UpdateEntry(AppliedFileEntry const& entry, uint32 const speed = 0) const;
 		void RenameEntry(std::string const& from, std::string const& to) const;
@@ -73,9 +101,14 @@ namespace DB
 
 		void UpdateState(std::string const& name, State const state) const;
 
+#ifdef LENDY_COMPILER_14
 		std::unique_ptr<Path> const _sourceDirectory;
-		std::function<void(std::string const&)> const _apply;
 		std::function<void(Path const& path)> const _applyFile;
+#else
+		std::string const _sourceDirectory;
+		std::function<void(std::string const& path)> const _applyFile;
+#endif
+		std::function<void(std::string const&)> const _apply;
 		std::function<QueryResult(std::string const&)> const _retrieve;
 	};
 	////////////////////////////
@@ -114,10 +147,17 @@ namespace DB
 		static void Apply(DBWorkerPool<T>& pool, std::string const& query);
 
 	private:
+
+#ifdef LENDY_COMPILER_14
 		static void ApplyFile(DBWorkerPool<T>& pool, Path const& path);
 		static void ApplyFile(DBWorkerPool<T>& pool, std::string const& host, std::string const& user,
 			std::string const& password, std::string const& portsocket, std::string const& database, Path const& path);
-		
+#else
+		static void ApplyFile(DBWorkerPool<T>& pool, std::string const& path);
+		static void ApplyFile(DBWorkerPool<T>& pool, std::string const& host, std::string const& user,
+			std::string const& password, std::string const& portsocket, std::string const& database, std::string const& path);
+#endif
+
 		//mysqlÂ·¾¶
 		static std::string& CorrectedPath();
 

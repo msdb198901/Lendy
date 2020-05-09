@@ -3,7 +3,11 @@
 
 #include "Define.h"
 #include <string>
-#include <wtypes.h>
+#if LENDY_PLATFORM == LENDY_PLATFORM_UNIX
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dlfcn.h>
+#endif
 
 typedef struct GGUID {
 	unsigned long  Data1;
@@ -128,7 +132,11 @@ public:
 
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 
+#ifdef LENDY_COMPILER_14
 			decltype(auto) FuncVtoHPoint = [this]()
+#else
+			auto FuncVtoHPoint = [this]()
+#endif
 			{
 				return static_cast<HINSTANCE>(m_pDLLInstance);
 			};
@@ -142,7 +150,7 @@ public:
 			}
 			CreateProc = (MoudleCreateProc*)GetProcAddress(FuncVtoHPoint(), m_strCreateProc.c_str());
 #else
-			m_pDLLInstance = dlopen(file, RTLD_NOW);
+			m_pDLLInstance = dlopen(m_strDLLName.c_str(), RTLD_NOW);
 			if (m_pDLLInstance == nullptr)
 			{
 				return false;

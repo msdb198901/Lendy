@@ -1,5 +1,5 @@
 #include "StringUtility.h"
-#include <string>
+#include <cstring>
 #include <functional> 
 #include <algorithm>
 #include <cstdarg>
@@ -318,35 +318,10 @@ void StringUtility::VUTF8Printf(FILE* out, const char *str, va_list* ap)
 
 	size_t temp_len = vsprintf_s(temp_buf, 32 * 1024, str, *ap);
 
-	/*if (temp_len == size_t(-1))
-	{
-		temp_len = 32 * 1024 - 1;
-	}
-
-	size_t wtemp_len = 32 * 1024 - 1;
-
-	UTF8ToWSTR(temp_buf, temp_len, wtemp_len, wtemp_len);
-	CharToOemBuffW(&wtemp_buf[0], &temp_buf[0], uint32(wtemp_len + 1));*/
 	fprintf(out, "%s", temp_buf);
 #else
 	vfprintf(out, str, *ap);
 #endif
-}
-
-bool StringUtility::Utf8toWStr(const std::string & utf8str, std::wstring & wstr)
-{
-	wstr.clear();
-	try
-	{
-		utf8::utf8to16(utf8str.c_str(), utf8str.c_str() + utf8str.size(), std::back_inserter(wstr));
-	}
-	catch (std::exception const&)
-	{
-		wstr.clear();
-		return false;
-	}
-
-	return true;
 }
 
 bool StringUtility::IsBasicLatinCharacter(wchar_t wchar)
@@ -409,10 +384,26 @@ bool StringUtility::WStrToUtf8(std::wstring const & wstr, std::string & utf8str)
 	return true;
 }
 
+bool StringUtility::Utf8ToWStr(const std::string & utf8str, std::wstring & wstr)
+{
+	wstr.clear();
+	try
+	{
+		utf8::utf8to16(utf8str.c_str(), utf8str.c_str() + utf8str.size(), std::back_inserter(wstr));
+	}
+	catch (std::exception const&)
+	{
+		wstr.clear();
+		return false;
+	}
+
+	return true;
+}
+
 bool StringUtility::Utf8ToUpperOnlyLatin(std::string & utf8String)
 {
 	std::wstring wstr;
-	if (!Utf8toWStr(utf8String, wstr))
+	if (!Utf8ToWStr(utf8String, wstr))
 		return false;
 
 	std::transform(wstr.begin(), wstr.end(), wstr.begin(), wcharToUpperOnlyLatin);
@@ -420,23 +411,30 @@ bool StringUtility::Utf8ToUpperOnlyLatin(std::string & utf8String)
 	return WStrToUtf8(wstr, utf8String);
 }
 
-#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
+
 std::wstring StringUtility::StringToWString(const std::string & str)
 {
 	std::wstring wstr;
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
 	wstr.resize(str.size());
 	OemToCharBuffW(&str[0], &wstr[0], uint32(str.size()));
+#else
+	Utf8ToWStr(str, wstr);
+#endif
 	return wstr;
 }
 
 std::string StringUtility::WStringToString(const std::wstring & wstr)
 {
 	std::string str;
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
 	str.resize(wstr.size());
 	CharToOemBuffW(&wstr[0], &str[0], uint32(wstr.size()));
+#else
+	WStrToUtf8(wstr, str);
+#endif
 	return str;
 }
-#endif
 
 bool StringUtility::ConsoleToUtf8(const std::string & conStr, std::string & utf8str)
 {
@@ -448,7 +446,7 @@ bool StringUtility::ConsoleToUtf8(const std::string & conStr, std::string & utf8
 	return WStrToUtf8(wstr, utf8str);
 #else
 	// not implemented yet
-	conStr = utf8str;
+	utf8str = conStr;
 	return true;
 #endif
 }
@@ -457,7 +455,7 @@ bool StringUtility::Utf8ToConsole(const std::string& utf8str, std::string& conSt
 {
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
 	std::wstring wstr;
-	if (!Utf8toWStr(utf8str, wstr))
+	if (!Utf8ToWStr(utf8str, wstr))
 		return false;
 
 	//conStr.resize(wstr.size());

@@ -562,7 +562,7 @@ namespace SubGame
 			UserListInfo[cbListUserCount].wChairID = pServerUser->GetChairID();
 
 			std::wstring wstrNickName = Util::StringUtility::StringToWString(pServerUser->GetNickName());
-			swprintf_s(UserListInfo[cbListUserCount].szNickName, L"%s", wstrNickName.c_str());
+			swprintf(UserListInfo[cbListUserCount].szNickName, sizeof(UserListInfo[cbListUserCount].szNickName), L"%s", wstrNickName.c_str());
 			cbListUserCount++;
 		}
 
@@ -658,7 +658,7 @@ namespace SubGame
 		uint64 lSystemScore = 0;
 
 		//推断玩家
-		uint8 cbWinArea[AREA_MAX] = { FALSE };
+		uint8 cbWinArea[AREA_MAX] = { 0 };
 		uint8 cbWinXian = m_GameLogic.CompareCard(m_cbTableCardArray[INDEX_PLAYER], m_cbTableCardArray[INDEX_BANKER], MAX_COUNT);
 		if (cbWinXian)
 		{
@@ -722,7 +722,7 @@ namespace SubGame
 			pingType = 3;
 			GameRecord.cbCardType = 2;
 		}
-		GameRecord.cbPing = pingType > 0 ? TRUE : FALSE;
+		GameRecord.cbPing = pingType > 0 ? 1 : 0;
 
 		m_cbOpenResult[AREA_MAX] = GameRecord.cbCardType;
 
@@ -787,8 +787,8 @@ namespace SubGame
 		m_cbCardCount[INDEX_BANKER] = MAX_COUNT;
 
 		//计算点数
-		BYTE cbBankerCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_BANKER], m_cbCardCount[INDEX_BANKER]);
-		BYTE cbPlayerTwoCardCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_PLAYER], m_cbCardCount[INDEX_PLAYER]);
+		uint8 cbBankerCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_BANKER], m_cbCardCount[INDEX_BANKER]);
+		uint8 cbPlayerTwoCardCount = m_GameLogic.GetCardType(m_cbTableCardArray[INDEX_PLAYER], m_cbCardCount[INDEX_PLAYER]);
 		return;
 	}
 

@@ -107,7 +107,7 @@ namespace Net
 		uint16											m_threadCount;
 		CTCPNetworkThread<CTCPNetworkItem>*				m_pThreads;
 
-#ifdef FORCE_CLOSE
+#ifdef LENDY_SOCKET_FORCE_CLOSE
 		std::deque<std::shared_ptr<CTCPNetworkItem>>	m_NetworkFreeItem;
 #endif
 
@@ -121,7 +121,7 @@ namespace Net
 		//辅助变量
 	protected:
 		std::mutex						m_mutex;
-		BYTE							m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
+		uint8							m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
 	};
 }
 

@@ -4,13 +4,13 @@
 #include "LogConsole.h"
 #include "LogFile.h"
 #include "INIReader.h"
+#include <memory>
 #include <sstream>
 #include <chrono>
 
 namespace LogComm
 {
 	using namespace Util;
-
 
 	////////////////////////////////////
 	Log::Log() : 
@@ -140,7 +140,11 @@ namespace LogComm
 		time_t tt = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
 		std::tm aTm;
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 		Util::StringUtility::localtime_r(&tt, &aTm);
+#else
+		localtime_r(&tt, &aTm);
+#endif
 
 		return Util::StringFormat("%04d-%02d-%02d_%02d-%02d-%02d",
 			aTm.tm_year + 1900, aTm.tm_mon + 1, aTm.tm_mday, aTm.tm_hour, aTm.tm_min, aTm.tm_sec);

@@ -18,6 +18,7 @@ CollectIncludeDirectories(
   PUBLIC_INCLUDES)
 
 add_definitions(-DASIO_STANDALONE)
+add_definitions(-DBOOST_ASIO_STANDALONE)
 
 add_subdirectory(dep)
 add_subdirectory(util)

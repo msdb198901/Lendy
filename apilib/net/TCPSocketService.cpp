@@ -36,8 +36,8 @@ namespace Net
 	if (bRun) return false; 
 
 #define CONTAINING_RECORD(address, type, field) ((type *)( \
-                                                  (PCHAR)(address) - \
-                                                  (ULONG_PTR)(&((type *)0)->field)))
+                                                  (char*)(address) - \
+                                                  (ullong)(&((type *)0)->field)))
 	//连接请求
 	struct tagConnectRequest
 	{
@@ -311,7 +311,7 @@ namespace Net
 				{
 					//处理数据
 					CTCPSocketService * pTCPSocketStatusService = CONTAINING_RECORD(this, CTCPSocketService, m_TCPSocketServiceThread);
-					if (pTCPSocketStatusService->OnSocketRead(Command, pDataBuffer, wDataSize) == false) throw TEXT("网络数据包处理失败");
+					if (pTCPSocketStatusService->OnSocketRead(Command, pDataBuffer, wDataSize) == false) throw "网络数据包处理失败";
 				}
 			}
 
@@ -335,7 +335,11 @@ namespace Net
 		if (m_hSocket != INVALID_SOCKET)
 		{
 			//关闭连接
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 			closesocket(m_hSocket);
+#else
+			close(m_hSocket);
+#endif
 			m_hSocket = INVALID_SOCKET;
 
 			//关闭通知
@@ -410,7 +414,7 @@ namespace Net
 		int i = 0;
 		//效验参数
 		assert(wDataSize >= sizeof(TCP_Head));
-		assert(wBufferSize >= (wDataSize + 2 * sizeof(DWORD)));
+		assert(wBufferSize >= (wDataSize + 2 * sizeof(uint32)));
 		assert(wDataSize <= (sizeof(TCP_Head) + SOCKET_TCP_BUFFER));
 
 		//填写信息头
@@ -419,7 +423,7 @@ namespace Net
 		pHead->TCPInfo.cbDataKind = DK_MAPPED;
 
 
-		BYTE checkCode = 0;
+		uint8 checkCode = 0;
 
 		for (uint16 i = sizeof(TCP_Info); i < wDataSize; i++)
 		{
@@ -476,7 +480,12 @@ namespace Net
 				int result = select(m_hSocket + 1, &readset, &writeset, &exceptset, &m_tTimeOut);
 				if (result == SOCKET_ERROR)
 				{
-					int i = WSAGetLastError();
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+					int iErrorCode = WSAGetLastError();
+#else
+					int iErrorCode = errno;
+#endif
+					(void)iErrorCode;
 					assert(nullptr);
 					break;
 				}

@@ -15,13 +15,30 @@
 #include <sstream>
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 #include <Windows.h>
+#include <io.h>
 #else
-
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #endif
+
 #include <iostream>
 #include <fstream>
-#include <filesystem>
-#include <io.h>
+
+
+//#ifdef LENDY_COMPILER_14
+//using std::make_unique;
+//#else
+//namespace std
+//{
+//	template<typename T, typename... Ts>
+//	std::unique_ptr<T> make_unique(Ts&&... params)
+//	{
+//		return std::unique_ptr<T>(new T(std::forward<Ts>(params)...));
+//	}
+//}
+//#endif
 
 namespace DB
 {
@@ -51,15 +68,24 @@ namespace DB
 
 		LOG_INFO("sql.updates", "正在创建数据库 \"%s\"...", pool.GetConnectionInfo()->database.c_str());
 		
+#ifdef LENDY_COMPILER_14
 		static Path const temp("create_table.sql");
-
 		std::ofstream file(temp.generic_string());
 		if (!file.is_open())
 		{
 			LOG_FATAL("sql.updates", "Failed to create temporary query file \"%s\"!", temp.generic_string().c_str());
 			return false;
 		}
-
+#else
+		static std::string const temp("create_table.sql");
+		std::ofstream file(temp.c_str());
+		if (!file.is_open())
+		{
+			LOG_FATAL("sql.updates", "Failed to create temporary query file \"%s\"!", temp.c_str());
+			return false;
+		}
+#endif
+		
 		file << "CREATE DATABASE `" << pool.GetConnectionInfo()->database << "` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci\n\n";
 
 		file.close();
@@ -72,12 +98,16 @@ namespace DB
 		catch (...)
 		{
 			LOG_FATAL("sql.updates", "Failed to create database %s! Does the user (named in *.conf) have `CREATE`, `ALTER`, `DROP`, `INSERT` and `DELETE` privileges on the MySQL server?", pool.GetConnectionInfo()->database.c_str());
+#ifdef LENDY_COMPILER_14
 			std::tr2::sys::remove(temp);
+#endif
 			return false;
 		}
 
 		LOG_INFO("sql.updates", "Done.");
+#ifdef LENDY_COMPILER_14
 		std::tr2::sys::remove(temp);
+#endif
 		return true;
 	}
 
@@ -104,6 +134,7 @@ namespace DB
 			return true;
 		}
 
+#ifdef LENDY_COMPILER_14
 		Path const base(p);
 		if (!exists(p))
 		{
@@ -124,8 +155,31 @@ namespace DB
 			}
 			return false;
 		}
-
 		LOG_INFO("sql.updates", ">> 正在应用 \'%s\'...", base.generic_string().c_str());
+#else
+		struct stat st;
+		std::string const base(p);
+		if (stat(base.c_str(), &st) < 0)
+		{
+			switch (DBUpdater<T>::GetBaseLocationType())
+			{
+				case LOCATION_REPOSITORY:
+				{
+					LOG_ERROR("sql.updates", ">> 基础文件 \"%s\" 缺失.",
+						base.c_str());
+					break;
+				}
+				case LOCATION_DOWNLOAD:
+				{
+					std::string const filename = base;
+					LOG_ERROR("sql.updates", ">> 文件 \"%s\" 缺失.", filename.c_str());
+					break;
+				}
+			}
+			return false;
+		}
+		LOG_INFO("sql.updates", ">> 正在应用 \'%s\'...", base.c_str());
+#endif
 
 		try
 		{
@@ -150,16 +204,28 @@ namespace DB
 
 		LOG_INFO("sql.updates", "正在更新 %s 数据库...", DBUpdater<T>::GetTableName().c_str());
 
+#ifdef LENDY_COMPILER_14
 		Path const sourceDirectory(GetSourceDirectory());
 		if (!is_directory(sourceDirectory))
 		{
 			LOG_ERROR("sql.updates", "更新目录 %s 不存在, 请检查指定sql目录.", sourceDirectory.generic_string().c_str());
 			return false;
 		}
-
 		UpdateFetcher updateFetcher(sourceDirectory, [&](std::string const& query) { DBUpdater<T>::Apply(pool, query); },
 			[&](Path const& file) { DBUpdater<T>::ApplyFile(pool, file); },
 			[&](std::string const& query) -> QueryResult { return DBUpdater<T>::Retrieve(pool, query); });
+#else
+		struct stat st;
+		std::string const sourceDirectory(GetSourceDirectory());
+		if (stat(sourceDirectory.c_str(), &st) < 0 || !S_ISDIR(st.st_mode)) 
+		{
+			LOG_ERROR("sql.updates", "更新目录 %s 不存在, 请检查指定sql目录.", sourceDirectory.c_str());
+			return false;
+		}
+		UpdateFetcher updateFetcher(sourceDirectory, [&](std::string const& query) { DBUpdater<T>::Apply(pool, query); },
+			[&](std::string const& file) { DBUpdater<T>::ApplyFile(pool, file); },
+			[&](std::string const& query) -> QueryResult { return DBUpdater<T>::Retrieve(pool, query); });
+#endif
 
 		UpdateResult result;
 		try
@@ -175,13 +241,13 @@ namespace DB
 			return false;
 		}
 
-		std::string const info = StringFormat("Containing " "%" PRIuPTR " new and " "%" PRIuPTR " archived updates.",
-			result.recent, result.archived);
+		//std::string const info = StringFormat("Containing " "%" PRIuPTR " new and " "%" PRIuPTR " archived updates.",
+		//	result.recent, result.archived);
 
-		if (!result.updated)
-			LOG_INFO("sql.updates", ">> %s database is up-to-date! %s", DBUpdater<T>::GetTableName().c_str(), info.c_str());
-		else
-			LOG_INFO("sql.updates", ">> Applied " "%" PRIuPTR " %s. %s", result.updated, result.updated == 1 ? "query" : "queries", info.c_str());
+		//if (!result.updated)
+		//	LOG_INFO("sql.updates", ">> %s database is up-to-date! %s", DBUpdater<T>::GetTableName().c_str(), info.c_str());
+		//else
+		//	LOG_INFO("sql.updates", ">> Applied " "%" PRIuPTR " %s. %s", result.updated, result.updated == 1 ? "query" : "queries", info.c_str());
 
 		return true;
 	}
@@ -223,6 +289,7 @@ namespace DB
 		pool.DirectExecute(query.c_str());
 	}
 
+#ifdef LENDY_COMPILER_14
 	template<class T>
 	void DBUpdater<T>::ApplyFile(DBWorkerPool<T>& pool, Path const & path)
 	{
@@ -298,7 +365,7 @@ namespace DB
 		BOOL result = CreateProcess(NULL, (char*)os.str().c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
 		if (result)
 		{
-			DWORD dwExitCode = 0;
+			ulong dwExitCode = 0;
 
 			CloseHandle(pi.hThread);
 
@@ -327,6 +394,112 @@ namespace DB
 			}
 		}
 	}
+#else
+	template<class T>
+	void DBUpdater<T>::ApplyFile(DBWorkerPool<T>& pool, std::string const & path)
+	{
+		DBUpdater<T>::ApplyFile(pool, pool.GetConnectionInfo()->host, pool.GetConnectionInfo()->user, pool.GetConnectionInfo()->password,
+			pool.GetConnectionInfo()->portsocket, pool.GetConnectionInfo()->database, path);
+	}
+
+	template<class T>
+	void DBUpdater<T>::ApplyFile(DBWorkerPool<T>& pool, std::string const & host, std::string const & user, std::string const & password, std::string const & portsocket, std::string const & database, std::string const & path)
+	{
+		std::vector<std::string> args;
+		args.reserve(8);
+
+		// args[0] represents the program name
+		args.push_back("mysql");
+
+		// CLI Client connection info
+		args.push_back("-h " + host);
+		args.push_back("-u" + user);
+
+		if (!password.empty())
+			args.push_back("-p" + password);
+
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+
+		args.push_back("-P " + portsocket);
+
+#else
+
+		if (!std::isdigit(portsocket[0]))
+		{
+			// We can't check if host == "." here, because it is named localhost if socket option is enabled
+			args.push_back("-P0");
+			args.push_back("--protocol=SOCKET");
+			args.push_back("-S" + portsocket);
+		}
+		else
+			// generic case
+			args.push_back("-P" + portsocket);
+
+#endif
+
+		// Set the default charset to utf8
+		args.push_back("--default-character-set=utf8");
+
+		// Set max allowed packet to 1 GB
+		args.push_back("--max-allowed-packet=1GB");
+
+		// Database
+		if (!database.empty())
+			args.push_back(database);
+
+		// Invokes a mysql process which doesn't leak credentials to logs
+		int ret = EXIT_SUCCESS;
+
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+
+		std::ostringstream os;
+		os << "cmd.exe /c ";
+		for (std::vector<std::string>::const_iterator it = args.begin(); it != args.end(); ++it)
+		{
+			os << it->c_str() << " ";
+		}
+		os << "< " << path;
+
+		PROCESS_INFORMATION pi;
+		STARTUPINFO		si;//用于指定新进程的主窗口特性的一个结构
+		memset(&si, 0, sizeof(si));
+		si.cb = sizeof(STARTUPINFO);
+		si.dwFlags = STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_SHOW;//SW_HIDE隐藏窗口
+
+		BOOL result = CreateProcess(NULL, (char*)os.str().c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+		if (result)
+		{
+			ulong dwExitCode = 0;
+
+			CloseHandle(pi.hThread);
+
+			WaitForSingleObject(pi.hProcess, INFINITE);
+
+			GetExitCodeProcess(pi.hProcess, &dwExitCode);
+
+			CloseHandle(pi.hProcess);
+
+			ret = dwExitCode;
+		}
+#else
+
+#endif
+		if (ret != EXIT_SUCCESS)
+		{
+			LOG_FATAL("sql.updates", "更新文件 \'%s\' 入数据库 \'%s\' 失败!", \
+				path.c_str(), pool.GetConnectionInfo()->database.c_str());
+			try
+			{
+				throw "update failed";
+			}
+			catch (const std::exception& ec)
+			{
+				LOG_ERROR("sql.updates", ec.what());
+			}
+		}
+	}
+#endif
 
 	template<class T>
 	bool DBUpdater<T>::CheckExecutable()
@@ -338,20 +511,29 @@ namespace DB
 		Util::Tokenizer tok(path, ';');
 		for (Util::Tokenizer::const_iterator it = tok.begin(); it != tok.end(); ++it)
 		{
+#ifdef LENDY_COMPILER_14
 			Path p = *it;
+#else
+			std::string p = *it;
+#endif
 
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 			p /= "mysql.exe";
-#else
-			p /= "mysql";
-#endif
-
 			if (!::access(p.generic_string().c_str(), 0))  //X_OR
 			{
 				result = p.string();
 				CorrectedPath() = *it;
 				break;
 			}
+#else
+			p += "mysql";
+			if (!access(p.c_str(), F_OK))  //X_OR
+			{
+				result = p;
+				CorrectedPath() = *it;
+				break;
+			}
+#endif
 		}
 
 		if (result.empty())
@@ -387,10 +569,17 @@ namespace DB
 
 	struct DirectoryEntry
 	{
+#ifdef LENDY_COMPILER_14
 		DirectoryEntry(Path const& path_, State state_) : path(path_), state(state_) { }
 
 		Path const path;
 		State const state;
+#else
+		DirectoryEntry(std::string const& path_, State state_) : path(path_), state(state_) { }
+
+		std::string const path;
+		State const state;
+#endif
 	};
 
 	struct AppliedFileEntry
@@ -422,6 +611,7 @@ namespace DB
 		}
 	};
 
+#ifdef LENDY_COMPILER_14
 	UpdateFetcher::UpdateFetcher(Path const & updateDirectory, 
 		std::function<void(std::string const&)> const & apply, 
 		std::function<void(Path const&path)> const & applyFile, 
@@ -432,6 +622,16 @@ namespace DB
 		_retrieve(retrieve)
 	{
 	}
+
+#else
+	UpdateFetcher::UpdateFetcher(std::string const & updateDirectory, std::function<void(std::string const&)> const & apply, std::function<void(std::string const&path)> const & applyFile, std::function<QueryResult(std::string const&)> const & retrieve) :
+		_sourceDirectory(updateDirectory),
+		_apply(apply),
+		_applyFile(applyFile),
+		_retrieve(retrieve)
+	{
+	}
+#endif
 
 	UpdateFetcher::~UpdateFetcher()
 	{
@@ -466,8 +666,10 @@ namespace DB
 
 		size_t importedUpdates = 0;
 
+#ifdef LENDY_COMPILER_14
 		for (auto const& availableQuery : available)
 		{
+
 			LOG_DEBUG("sql.updates", "正在检查更新 \"%s\"...", availableQuery.first.filename().generic_string().c_str());
 
 			AppliedFileStorage::const_iterator iter = applied.find(availableQuery.first.filename().string());
@@ -584,7 +786,7 @@ namespace DB
 			if (mode == MODE_APPLY)
 				++importedUpdates;
 		}
-			
+#endif
 		// 清理孤立的条目（如果启用）
 		if (!applied.empty())
 		{
@@ -613,7 +815,11 @@ namespace DB
 	
 	bool UpdateFetcher::PathCompare::operator()(LocaleFileEntry const & left, LocaleFileEntry const & right) const
 	{
+#ifdef LENDY_COMPILER_14
 		return left.first.filename().string() < right.first.filename().string();
+#else
+		return left.first < right.first;
+#endif
 	}
 
 	UpdateFetcher::LocaleFileStorage UpdateFetcher::GetFileList() const
@@ -640,10 +846,13 @@ namespace DB
 		{
 			Field* fields = result->Fetch();
 			std::string path = fields[0].GetString();
+
+#ifdef LENDY_COMPILER_14
 			if (path.substr(0, 1) == "$")
 			{
 				path = _sourceDirectory->generic_string() + path.substr(1);
 			}
+
 			Path const p(path);
 			if (!is_directory(p))
 			{
@@ -655,6 +864,24 @@ namespace DB
 			directories.push_back(entry);
 
 			LOG_TRACE("sql.updates", "从目录 \"%s\" 添加更新文件.", p.filename().generic_string().c_str());
+#else
+			if (path.substr(0, 1) == "$")
+			{
+				path = _sourceDirectory + path.substr(1);
+			}
+			struct stat st;
+			std::string const p(path);
+			if (stat(p.c_str(), &st) < 0 || !S_ISDIR(st.st_mode)) 
+			{
+				LOG_WARN("sql.updates", "更新目录 \"%s\" 不存在, 跳过!", p.c_str());
+				continue;
+			}
+
+			DirectoryEntry const entry = { p, AppliedFileEntry::StateConvert(fields[1].GetString()) };
+			directories.push_back(entry);
+
+			LOG_TRACE("sql.updates", "从目录 \"%s\" 添加更新文件.", p.c_str());
+#endif
 
 		} while (result->NextRow());
 
@@ -682,6 +909,7 @@ namespace DB
 		return map;
 	}
 
+#ifdef LENDY_COMPILER_14
 	std::string UpdateFetcher::ReadSQLUpdate(Path const & file) const
 	{
 		std::ifstream in(file.c_str());
@@ -718,6 +946,44 @@ namespace DB
 		// Return the time it took the query to apply
 		return uint32(std::chrono::duration_cast<std::chrono::milliseconds>(Time::now() - begin).count());
 	}
+#else
+	std::string UpdateFetcher::ReadSQLUpdate(std::string const & file) const
+	{
+		std::ifstream in(file.c_str());
+		if (!in.is_open())
+		{
+			LOG_FATAL("sql.updates", "无法打开sql更新 \"%s\" 进行读取! "
+				"停止服务器以保持数据库完整性, "
+				"尝试确定并解决问题或禁用数据库更新程序.",
+				file.c_str());
+
+			throw "打开更新文件失败!";
+		}
+
+		auto update = [&in] {
+			std::ostringstream ss;
+			ss << in.rdbuf();
+			return ss.str();
+		}();
+
+		in.close();
+		return update;
+	}
+
+	uint32 UpdateFetcher::Apply(std::string const & path) const
+	{
+		using Time = std::chrono::high_resolution_clock;
+
+		// Benchmark query speed
+		auto const begin = Time::now();
+
+		// Update database
+		_applyFile(path);
+
+		// Return the time it took the query to apply
+		return uint32(std::chrono::duration_cast<std::chrono::milliseconds>(Time::now() - begin).count());
+	}
+#endif
 
 	void UpdateFetcher::UpdateEntry(AppliedFileEntry const& entry, uint32 const speed) const
 	{
@@ -778,6 +1044,7 @@ namespace DB
 		_apply(update);
 	}
 	
+#ifdef LENDY_COMPILER_14
 	void UpdateFetcher::FillFileListRecursively(Path const & path, LocaleFileStorage & storage, State const state, uint32 const depth) const
 	{
 		static uint32 const MAX_DEPTH = 10;
@@ -809,4 +1076,66 @@ namespace DB
 			}
 		}
 	}
+#else
+	void UpdateFetcher::FillFileListRecursively(std::string const & path, LocaleFileStorage & storage, State const state, uint32 const depth) const
+	{
+		DIR *dir = nullptr;
+		struct dirent *dp = nullptr; /* readdir函数的返回值就存放在这个结构体中 */
+		struct stat st;
+		char next_path[260] = { 0 };
+		static uint32 const MAX_DEPTH = 10;
+
+		if (stat(path.c_str(), &st) < 0 || !S_ISDIR(st.st_mode)) {
+			LOG_TRACE("sql.updates", "无效路径: %s", path.c_str());
+			return;
+		}
+
+		if (!(dir = opendir(path.c_str()))) {
+			LOG_TRACE("sql.updates", "打开目录[%s] 错误: %m", path.c_str());
+			return;
+		}
+
+		while ((dp = readdir(dir)) != nullptr) {
+			/* 把当前目录.，上一级目录..及隐藏文件都去掉，避免死循环遍历目录 */
+			if ((!strncmp(dp->d_name, ".", 1)) || (!strncmp(dp->d_name, "..", 2)))
+				continue;
+
+			snprintf(next_path, sizeof(next_path) - 1, "%s/%s", path.c_str(), dp->d_name);
+			stat(next_path, &st);
+			if (!S_ISDIR(st.st_mode)) {
+
+				int dot_pos = 0;
+				std::string file_name = dp->d_name;
+				if ((dot_pos = file_name.find_last_of(".")) == std::string::npos)
+				{
+					continue;
+				}
+
+				if (file_name.substr(dot_pos, file_name.length() - dot_pos).compare(".sql") != 0)
+				{
+					continue;
+				}
+
+				LocaleFileEntry const entry = { file_name, state };
+
+				if (storage.find(entry) != storage.end())
+				{
+					LOG_FATAL("sql.updates", "文件名 \"%s\" 重复. 由于更新是按文件名排序的， " \
+						"因此每个名称都必须唯一!", file_name.c_str());
+					throw "更新失败, 详情请看日志信息.";
+				}
+
+				storage.insert(entry);
+			}
+			else 
+			{
+				if (depth < MAX_DEPTH)
+				{
+					FillFileListRecursively(next_path, storage, state, depth + 1);
+				}
+			}
+		}
+		closedir(dir);
+	}
+#endif
 }

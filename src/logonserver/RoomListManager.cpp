@@ -1,4 +1,6 @@
 #include "RoomListManager.h"
+#include <cassert>
+#include <cstring>
 
 namespace Logon
 {

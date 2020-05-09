@@ -1,7 +1,11 @@
 #ifndef HEADER_LOGON_H
 #define HEADER_LOGON_H
 
+#ifdef LENDY_COMPILER_14
 #include <unordered_map>
+#else
+#include <map>
+#endif
 #include "DBEnvHeader.h"
 #include "KernelEngineHead.h"
 
@@ -88,7 +92,11 @@ namespace Game
 	};
 
 	typedef std::pair<LogonErrorCode, std::string> K_LE;
+#ifdef LENDY_COMPILER_14
 	typedef std::unordered_map<LogonErrorCode, std::string> LogonErrorContainer;
+#else
+	typedef std::map<LogonErrorCode, std::string> LogonErrorContainer;
+#endif
 	static LogonErrorContainer LogonError =
 	{
 		K_LE(LEC_LIMIT_IP, "抱歉地通知您，系统禁止了您所在的 IP 地址的登录功能，请联系客户服务中心了解详细情况！"),

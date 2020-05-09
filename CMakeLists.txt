@@ -6,10 +6,21 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_SOURCE_DIR}/cmake/macros")
 
+if (WIN32)
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+else()
+SET( CMAKE_CXX_FLAGS "-std=c++11 -O3")
+  if( NOT CMAKE_BUILD_TYPE )
+    set(CMAKE_BUILD_TYPE "Debug")
+    set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -gdwarf-2 -fPIC")
+  endif()
+endif()
+
 find_package(MySQL)
 
-include(ConfigureScripts)
 include(ConfigureBaseTargets)
+include(ConfigureScripts)
+
 include(Utils)
 include(AutoCollect)
 include(options)

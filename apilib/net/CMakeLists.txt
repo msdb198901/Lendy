@@ -9,6 +9,7 @@ CollectSourceFiles(
 add_definitions(-DLENDY_API_EXPORT_COMMON)
 add_library(Net SHARED ${PRIVATE_SOURCES})
 set_target_properties(Net PROPERTIES FOLDER "KernelEngine") 
+set_target_properties(Net PROPERTIES PREFIX "")
 
 target_include_directories(Net
   PUBLIC

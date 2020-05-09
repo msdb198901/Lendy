@@ -86,7 +86,7 @@ namespace Net
 		//错误判断
 		if (m_pITCPNetworkEngineEvent == nullptr)
 		{
-			assert(FALSE);
+			assert(nullptr);
 			return false;
 		}
 		return true;
@@ -418,7 +418,7 @@ namespace Net
 
 		//获取对象
 		std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem = nullptr;
-#ifdef FORCE_CLOSE
+#ifdef LENDY_SOCKET_FORCE_CLOSE
 		if (!m_NetworkFreeItem.empty())
 		{
 			pTCPNetworkItem = m_NetworkFreeItem.front();
@@ -466,7 +466,7 @@ namespace Net
 		}
 		m_NetItemStore.erase(it);
 		
-#ifdef FORCE_CLOSE
+#ifdef LENDY_SOCKET_FORCE_CLOSE
 		m_NetworkFreeItem.push_back(pTCPNetworkItem);
 #endif
 		return true;

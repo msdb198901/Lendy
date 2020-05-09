@@ -17,7 +17,11 @@ namespace LogComm
 	std::string LogMessage::GetTimeStr(time_t time)
 	{
 		tm _tm;
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 		Util::StringUtility::localtime_r(&time, &_tm);
+#else
+		localtime_r(&time, &_tm);
+#endif
 		char buf[20];
 		snprintf(buf, 20, "%04d-%02d-%02d_%02d:%02d:%02d", _tm.tm_year + 1900, _tm.tm_mon + 1, _tm.tm_mday, _tm.tm_hour, _tm.tm_min, _tm.tm_sec);
 		return std::string(buf);

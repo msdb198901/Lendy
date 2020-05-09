@@ -169,7 +169,8 @@ namespace Game
 		m_bClientReady = bClientReady;
 		m_wBindIndex = wBindIndex;
 		m_dwClientAddr = dwClientAddr;
-		sprintf_s(m_szMachineID, szMachineID, sizeof(m_szMachineID));
+		snprintf(m_szMachineID, sizeof(m_szMachineID), "%s", szMachineID);
+
 		return true;
 	}
 
@@ -295,7 +296,7 @@ namespace Game
 		//连接信息
 		pServerUserItem->m_wBindIndex = UserInfoPlus.wBindIndex;
 		pServerUserItem->m_dwClientAddr = UserInfoPlus.dwClientAddr;
-		sprintf_s(pServerUserItem->m_szMachineID, "%s", UserInfoPlus.szMachineID);
+		snprintf(pServerUserItem->m_szMachineID, sizeof(pServerUserItem->m_szMachineID), "%s", UserInfoPlus.szMachineID);
 
 		//辅助变量
 		pServerUserItem->m_bClientReady = false;

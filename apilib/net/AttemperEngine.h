@@ -82,7 +82,7 @@ public:
 
 		//辅助变量
 	protected:
-		BYTE						m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
+		uint8						m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
 	};
 }
 

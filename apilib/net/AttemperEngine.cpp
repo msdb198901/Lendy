@@ -414,7 +414,23 @@ namespace Net
 		return false;
 	}
 
-	DECLARE_CREATE_MODULE(AttemperEngine);
+	//DECLARE_CREATE_MODULE(AttemperEngine);
+
+	extern "C" LENDY_COMMON_API void* CreateAttemperEngine(GGUID uuid)
+	{																		
+		CAttemperEngine *pObjectType = nullptr;
+		try																	
+		{																	
+			pObjectType = new CAttemperEngine();
+			if (pObjectType == nullptr) throw "¥¥Ω® ß∞‹";					
+			void *pObject = pObjectType->QueryInterface(uuid);				
+			if (pObject == nullptr) throw "≤È—Ø ß∞‹";						
+			return pObject;													
+		}																	
+		catch (const std::exception& ){  }									
+		PDELETE(pObjectType);												
+		return nullptr;														
+	}	
 }
 	 
 

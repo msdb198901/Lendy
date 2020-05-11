@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 
 	sLogMgr->Initialize("LogonConfig.ini");
 
-	LOG_INFO("server.logon", "µÇÂ¼·þÎñÆ÷Æô¶¯");
+	LOG_INFO("server.logon", "Starting Logonserver");
 	
 	std::shared_ptr<Net::IOContext> ioContext = std::make_shared<Net::IOContext>();
 

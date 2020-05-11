@@ -121,7 +121,7 @@ namespace Correspond
 			//错误通知
 			if ((m_ServiceStatus != ServiceStatus_Run) && (ServiceStatus == ServiceStatus_Stop))
 			{
-				LOG_INFO("server.correspond", "服务启动失败");
+				LOG_INFO("server.correspond", "Service failed to start.");
 			}
 
 			//设置变量
@@ -131,17 +131,17 @@ namespace Correspond
 			{
 				case ServiceStatus_Stop:	//停止状态
 				{
-					LOG_INFO("server.correspond", "服务停止成功");
+					LOG_INFO("server.correspond", "Service stopped successfully");
 					break;
 				}
 				case ServiceStatus_Config:	//配置状态
 				{
-					LOG_INFO("server.correspond", "正在初始化组件...");
+					LOG_INFO("server.correspond", "Initializing component...");
 					break;
 				}
 				case ServiceStatus_Run:	//服务状态
 				{
-					LOG_INFO("server.correspond", "服务启动成功");
+					LOG_INFO("server.correspond", "Service started successfully");
 					break;
 				}
 			}

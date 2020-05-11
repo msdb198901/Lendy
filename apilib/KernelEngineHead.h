@@ -7,8 +7,11 @@
 #include "Packet.h"
 //#include "DBEnvHeader.h"
 
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 #define NETWORK_ENGINE_DLL_NAME		"Net.dll"
-//#define DATABASE_ENGINE_DLL_NAME	"DataBase.dll"
+#else
+#define NETWORK_ENGINE_DLL_NAME		"Net.so"
+#endif
 
 static GGUID IID_IServiceModule = { 0xee6657db, 0x739e, 0x48c4, { 0x96, 0x73, 0x25, 0xce, 0x44, 0xd0, 0xc1, 0xf } };
 struct IServiceModule : public IUnknownEx

@@ -56,7 +56,7 @@ namespace DB
 	template<class T>
 	inline bool DBUpdater<T>::Create(DBWorkerPool<T>& pool)
 	{
-		LOG_INFO("sql.updates", "数据库 \"%s\" 不存在, 是否进行创建? [yes (default) / no]: ",
+		LOG_INFO("sql.updates", "Database \"%s\" does not exist, do you want to create it? [yes (default) / no]: ",
 			pool.GetConnectionInfo()->database.c_str());
 
 		std::string answer;
@@ -66,7 +66,7 @@ namespace DB
 			return false;
 		}
 
-		LOG_INFO("sql.updates", "正在创建数据库 \"%s\"...", pool.GetConnectionInfo()->database.c_str());
+		LOG_INFO("sql.updates", "Creating database \"%s\"...", pool.GetConnectionInfo()->database.c_str());
 		
 #ifdef LENDY_COMPILER_14
 		static Path const temp("create_table.sql");
@@ -125,12 +125,12 @@ namespace DB
 			return false;
 		}
 
-		LOG_INFO("sql.updates", "数据库 %s 为空, 自动迁移...", DBUpdater<T>::GetTableName().c_str());
+		LOG_INFO("sql.updates", "Database %s is empty, auto populating it...", DBUpdater<T>::GetTableName().c_str());
 
 		std::string const p = DBUpdater<T>::GetBaseFile();
 		if (p.empty())
 		{
-			LOG_INFO("sql.updates", ">> 没有基础文件提供, 跳过!");
+			LOG_INFO("sql.updates", ">> No base file provided, skipped!");
 			return true;
 		}
 
@@ -142,20 +142,20 @@ namespace DB
 			{
 				case LOCATION_REPOSITORY:
 				{
-					LOG_ERROR("sql.updates", ">> 基础文件 \"%s\" 缺失.",
+					LOG_ERROR("sql.updates", ">> Base file \"%s\" is missing. Try fixing it by cloning the source again.",
 						base.generic_string().c_str());
 					break;
 				}
 				case LOCATION_DOWNLOAD:
 				{
 					std::string const filename = base.filename().generic_string();
-					LOG_ERROR("sql.updates", ">> 文件 \"%s\" 缺失.", filename.c_str());
+					LOG_ERROR("sql.updates", ">> File \"%s\" is missing.", filename.c_str());
 					break;
 				}
 			}
 			return false;
 		}
-		LOG_INFO("sql.updates", ">> 正在应用 \'%s\'...", base.generic_string().c_str());
+		LOG_INFO("sql.updates", ">> Applying \'%s\'...", base.generic_string().c_str());
 #else
 		struct stat st;
 		std::string const base(p);
@@ -165,20 +165,20 @@ namespace DB
 			{
 				case LOCATION_REPOSITORY:
 				{
-					LOG_ERROR("sql.updates", ">> 基础文件 \"%s\" 缺失.",
+					LOG_ERROR("sql.updates", ">> Base file \"%s\" is missing. Try fixing it by cloning the source again.",
 						base.c_str());
 					break;
 				}
 				case LOCATION_DOWNLOAD:
 				{
 					std::string const filename = base;
-					LOG_ERROR("sql.updates", ">> 文件 \"%s\" 缺失.", filename.c_str());
+					LOG_ERROR("sql.updates", ">> File \"%s\" is missing.", filename.c_str());
 					break;
 				}
 			}
 			return false;
 		}
-		LOG_INFO("sql.updates", ">> 正在应用 \'%s\'...", base.c_str());
+		LOG_INFO("sql.updates", ">> Applying \'%s\'...", base.c_str());
 #endif
 
 		try
@@ -189,7 +189,7 @@ namespace DB
 		{
 			return false;
 		}
-		LOG_INFO("sql.updates", ">> 完毕!");
+		LOG_INFO("sql.updates", ">> Done!");
 
 		return true;
 	}
@@ -202,7 +202,7 @@ namespace DB
 			return false;
 		}
 
-		LOG_INFO("sql.updates", "正在更新 %s 数据库...", DBUpdater<T>::GetTableName().c_str());
+		LOG_INFO("sql.updates", "Updating %s database...", DBUpdater<T>::GetTableName().c_str());
 
 #ifdef LENDY_COMPILER_14
 		Path const sourceDirectory(GetSourceDirectory());
@@ -219,7 +219,7 @@ namespace DB
 		std::string const sourceDirectory(GetSourceDirectory());
 		if (stat(sourceDirectory.c_str(), &st) < 0 || !S_ISDIR(st.st_mode)) 
 		{
-			LOG_ERROR("sql.updates", "更新目录 %s 不存在, 请检查指定sql目录.", sourceDirectory.c_str());
+			LOG_ERROR("sql.updates", "DBUpdater: The given source directory %s does not exist, change the path to the directory where your sql directory exists (for example c:\\source\\trinitycore). Shutting down.", sourceDirectory.c_str());
 			return false;
 		}
 		UpdateFetcher updateFetcher(sourceDirectory, [&](std::string const& query) { DBUpdater<T>::Apply(pool, query); },
@@ -382,7 +382,7 @@ namespace DB
 #endif
 		if (ret != EXIT_SUCCESS)
 		{
-			LOG_FATAL("sql.updates", "更新文件 \'%s\' 入数据库 \'%s\' 失败!",\
+			LOG_FATAL("sql.updates", "Applying of file \'%s\' to database \'%s\' failed!",\
 				path.generic_string().c_str(), pool.GetConnectionInfo()->database.c_str());
 			try
 			{
@@ -487,7 +487,7 @@ namespace DB
 #endif
 		if (ret != EXIT_SUCCESS)
 		{
-			LOG_FATAL("sql.updates", "更新文件 \'%s\' 入数据库 \'%s\' 失败!", \
+			LOG_FATAL("sql.updates", "Applying of file \'%s\' to database \'%s\' failed!", \
 				path.c_str(), pool.GetConnectionInfo()->database.c_str());
 			try
 			{
@@ -538,7 +538,7 @@ namespace DB
 
 		if (result.empty())
 		{
-			LOG_FATAL("sql.updates", "MySQL 库无法查询, 请检查配置文件.");
+			LOG_FATAL("sql.updates", "Didn't find any executable MySQL binary, correct the path in the conf.");
 		}
 
 		return !result.empty();
@@ -915,12 +915,12 @@ namespace DB
 		std::ifstream in(file.c_str());
 		if (!in.is_open())
 		{
-			LOG_FATAL("sql.updates", "无法打开sql更新 \"%s\" 进行读取! "
-				"停止服务器以保持数据库完整性, "
-				"尝试确定并解决问题或禁用数据库更新程序.",
+			LOG_FATAL("sql.updates", "Failed to open the sql update \"%s\" for reading! "
+				"Stopping the server to keep the database integrity,  "
+				"try to identify and solve the issue or disable the database updater.",
 				file.generic_string().c_str());
 
-			throw "打开更新文件失败!";
+			throw "Opening the sql update failed!";
 		}
 
 		auto update = [&in] {
@@ -1120,9 +1120,9 @@ namespace DB
 
 				if (storage.find(entry) != storage.end())
 				{
-					LOG_FATAL("sql.updates", "文件名 \"%s\" 重复. 由于更新是按文件名排序的， " \
-						"因此每个名称都必须唯一!", file_name.c_str());
-					throw "更新失败, 详情请看日志信息.";
+					LOG_FATAL("sql.updates", "Duplicate filename \"%s\" occurred. Because updates are ordered " \
+						"by their filenames, every name needs to be unique!", file_name.c_str());
+					throw "Updating failed, see the log for details.";
 				}
 
 				storage.insert(entry);

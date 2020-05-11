@@ -20,3 +20,17 @@ target_include_directories(Net
 target_link_libraries(Net
   PUBLIC
     Log)
+
+
+if( UNIX )
+	add_custom_command(TARGET Net
+      POST_BUILD
+	  COMMAND 
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Net.so ${CMAKE_SOURCE_DIR}/bin/)
+endif()
+
+if( UNIX )
+  install(TARGETS Net DESTINATION bin)
+elseif( WIN32 )
+  install(TARGETS Net DESTINATION bin)
+endif()

@@ -132,7 +132,7 @@ namespace Game
 		//-h 192.168.1.217 - p 7000 - s 1 - t 200 - m 1
 		if (argc <= 1)
 		{
-			snprintf(m_GameAddressOption.szIP, sizeof(m_GameAddressOption.szIP), "%s", "192.168.1.217");
+			snprintf(m_GameAddressOption.szIP, sizeof(m_GameAddressOption.szIP), "%s", "127.0.0.1");
 			m_GameAddressOption.wPort = 7000;
 			m_GameAddressOption.wKindID = 104;
 			m_GameAddressOption.wThreadCount = 3;

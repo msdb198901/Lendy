@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 
 	sLogMgr->Initialize("CorrespondConfig.ini");
 
-	LOG_INFO("server.correspond", "协调服务器启动");
+	LOG_INFO("server.correspond", "CorrespondServer is initializing...");
 	
 	std::shared_ptr<Net::IOContext> ioContext = std::make_shared<Net::IOContext>();
 

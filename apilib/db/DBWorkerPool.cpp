@@ -25,18 +25,18 @@ namespace DB
 
 	template<typename T>
 	DBWorkerPool<T>::DBWorkerPool():
-		m_updateFlags(sConfigMgr->GetInt32("DB", "UpdateFlags", 1)),
+		m_updateFlags(sConfigMgr->GetInt32("DB", "UpdateFlags", 0)),
 		m_queue(new ProducerConsumerQueue<SQLOperation*>())
 	{
 		if (!mysql_thread_safe())
 		{
-			LOG_ERROR("sql.driver", "当前所使用 MySQL 库不是线程安全.");
+			LOG_ERROR("sql.driver", "Used MySQL library isn't thread-safe.");
 			abort();
 		}
 
 		if (mysql_get_client_version() < MIN_MYSQL_CLIENT_VERSION)
 		{
-			LOG_ERROR("sql.driver", "Lendy 不支持 MySQL 5.1 以下版本");
+			LOG_ERROR("sql.driver", "Lendy does not support MySQL versions below 5.1");
 			abort();
 		}
 	}
@@ -61,11 +61,11 @@ namespace DB
 		if (!m_connectionInfo.get())
 		{
 			assert(nullptr);
-			LOG_ERROR("sql.driver", "数据库连接信息没有设置!");
+			LOG_ERROR("sql.driver", "Connection info was not set!");
 		}
 
-		LOG_INFO("sql.driver", "打开数据库线程池 '%s'. "
-			"异步线程连接数: %u, 同步线程连接数: %u.",
+		LOG_INFO("sql.driver", "Opening DatabasePool '%s'. "
+			"Asynchronous connections: %u, synchronous connections: %u.",
 			GetDatabaseName(), m_asyncThreads, m_synchThreads);
 
 		uint32 error = OpenConnections(IDX_ASYNC, m_asyncThreads);
@@ -79,7 +79,7 @@ namespace DB
 
 		if (!error)
 		{
-			LOG_INFO("sql.driver", "数据库线程池 '%s' 开启成功. 当前运行线程数 %d.",
+			LOG_INFO("sql.driver", "DatabasePool '%s' opened successfully. %d total connections running.",
 				GetDatabaseName(), (m_connections[IDX_SYNCH].size() + m_connections[IDX_ASYNC].size()));
 		}
 		return error;
@@ -88,13 +88,13 @@ namespace DB
 	template<typename T>
 	void DBWorkerPool<T>::Close()
 	{
-		LOG_INFO("sql.driver", "正在关闭 '%s' 数据库.", GetDatabaseName());
+		LOG_INFO("sql.driver", "Closing down DatabasePool '%s'.", GetDatabaseName());
 		m_connections[IDX_ASYNC].clear();
 
-		LOG_INFO("sql.driver", "异步数据库线程池 '%s' 终止. ", GetDatabaseName());
+		LOG_INFO("sql.driver", "Asynchronous connections on DatabasePool '%s' terminated. ", GetDatabaseName());
 		m_connections[IDX_SYNCH].clear();
 
-		LOG_INFO("sql.driver", "'%s' 所有数据库线程池关闭.", GetDatabaseName());
+		LOG_INFO("sql.driver", "All connections on DatabasePool '%s' closed.", GetDatabaseName());
 	}
 
 	template<typename T>
@@ -145,22 +145,22 @@ namespace DB
 	template<typename T>
 	bool DBWorkerPool<T>::Start(DBWorkerPool<T> &pool)
 	{
-		bool const updatesEnabledForThis = true/*DBUpdater<T>::IsEnabled(_updateFlags)*/;
+		bool const updatesEnabledForThis = m_updateFlags == 1;/*DBUpdater<T>::IsEnabled(_updateFlags)*/;
 		std::string name = sConfigMgr->Get("DB", "Name", "");
 		m_open.push([this, name, updatesEnabledForThis, &pool]() -> bool
 		{
 			std::string const dbString = sConfigMgr->Get("DB", "ConnectionInfo", "");
 			if (dbString.empty())
 			{
-				LOG_ERROR("sql.driver", "数据库 %s 连接信息获取失败!", name.c_str());
+				LOG_ERROR("sql.driver", "Database %s not specified in configuration file!", name.c_str());
 				return false;
 			}
 
 			uint8 const asyncThreads = uint8(sConfigMgr->GetInt32("DB", "AsyncThreads", 1));
 			if (asyncThreads < 1 || asyncThreads > 32)
 			{
-				LOG_ERROR("sql.driver", "%s 数据库: 无效的工作线程数. "
-					"请设置在 1 到 32 之间.", name.c_str());
+				LOG_ERROR("sql.driver", "%s database: invalid number of worker threads specified. "
+                "Please pick a value between 1 and 32.", name.c_str());
 				return false;
 			}
 
@@ -177,7 +177,7 @@ namespace DB
 
 				if (error)
 				{
-					LOG_ERROR("sql.driver", "\n%s 数据库线程池没有打开. MySQL连接失败，请查询SQL驱动日志文件.", name.c_str());
+					LOG_ERROR("sql.driver", "\n%s DatabasePool %s NOT opened. There were errors opening the MySQL connections. Check your SQLDriverLogFile ", name.c_str());
 					return false;
 				}
 			}
@@ -196,7 +196,7 @@ namespace DB
 			{
 				if (!DBUpdater<T>::Populate(pool))
 				{
-					LOG_ERROR("sql.driver", "无法迁移 %s 数据库, 详情请查看日志.", name.c_str());
+					LOG_ERROR("sql.driver", "Could not populate the %s database, see log for details.", name.c_str());
 					return false;
 				}
 				return true;
@@ -206,7 +206,7 @@ namespace DB
 			{
 				if (!DBUpdater<T>::Update(pool))
 				{
-					LOG_ERROR("sql.driver", "更新 %s 数据库, 详情请查看日志.", name.c_str());
+					LOG_ERROR("sql.driver", "Could not update the %s database, see log for details.", name.c_str());
 					return false;
 				}
 				return true;
@@ -217,7 +217,7 @@ namespace DB
 		{
 			if (!PrepareStatements())
 			{
-				LOG_ERROR("sql.driver", "不能预加载数据库 %s 指令, 详情查询日志信息.", name.c_str());
+				LOG_ERROR("sql.driver", "Could not prepare statements of the %s database, see log for details.", name.c_str());
 				return false;
 			}
 			return true;
@@ -230,7 +230,7 @@ namespace DB
 	bool DBWorkerPool<T>::Load()
 	{
 		if (!m_updateFlags)
-			LOG_INFO("sql.updates", "自动更新未开启!");
+			LOG_INFO("sql.updates", "Automatic database updates are disabled for all databases!");
 
 		if (!Process(m_open))
 			return false;

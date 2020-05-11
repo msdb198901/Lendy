@@ -25,3 +25,16 @@ target_link_libraries(Util
 	openssl
 	utf8cpp)
 
+
+if( UNIX )
+	add_custom_command(TARGET Util
+      POST_BUILD
+	  COMMAND 
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Util.so ${CMAKE_SOURCE_DIR}/bin/)
+endif()
+
+if( UNIX )
+  install(TARGETS Util DESTINATION bin)
+elseif( WIN32 )
+  install(TARGETS Util DESTINATION bin)
+endif()

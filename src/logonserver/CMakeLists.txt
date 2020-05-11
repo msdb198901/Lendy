@@ -20,3 +20,24 @@ target_link_libraries(LogonServer
   PUBLIC
 	DataBase
     Net)
+
+if( UNIX )
+	add_custom_command(TARGET LogonServer
+      POST_BUILD
+	  COMMAND 
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/LogonServer ${CMAKE_SOURCE_DIR}/bin/
+      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/LogonConfig.ini ${CMAKE_SOURCE_DIR}/bin/)
+elseif( WIN32 )
+	add_custom_command(TARGET LogonServer
+      POST_BUILD
+	  COMMAND
+      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/LogonConfig.ini ${CMAKE_SOURCE_DIR}/bin/)
+endif()
+
+if( UNIX )
+  install(TARGETS LogonServer DESTINATION bin)
+  install(FILES LogonConfig.ini DESTINATION bin)
+elseif( WIN32 )
+  install(TARGETS LogonServer DESTINATION bin)
+  install(FILES LogonConfig.ini DESTINATION bin)
+endif()

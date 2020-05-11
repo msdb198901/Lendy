@@ -51,7 +51,7 @@ namespace Logon
 		}
 
 		//设置函数
-		m_funcStartNetService = [&]()
+		m_funcStartNetService = [this,ioContext]()
 		{
 			if (!m_TCPNetworkEngine->Start(ioContext))
 			{
@@ -177,7 +177,7 @@ namespace Logon
 			//错误通知
 			if ((m_ServiceStatus != ServiceStatus_Run) && (ServiceStatus == ServiceStatus_Stop))
 			{
-				LOG_INFO("server.logon", "服务启动失败");
+				LOG_INFO("server.logon", "Service failed to start");
 			}
 
 			//设置变量
@@ -187,17 +187,17 @@ namespace Logon
 			{
 				case ServiceStatus_Stop:	//停止状态
 				{
-					LOG_INFO("server.logon", "服务停止成功");
+					LOG_INFO("server.logon", "Service stopped successfully");
 					break;
 				}
 				case ServiceStatus_Config:	//配置状态
 				{
-					LOG_INFO("server.logon", "正在初始化组件...");
+					LOG_INFO("server.logon", "Initializing component...");
 					break;
 				}
 				case ServiceStatus_Run:	//服务状态
 				{
-					LOG_INFO("server.logon", "服务启动成功");
+					LOG_INFO("server.logon", "Service started successfully");
 					break;
 				}
 			}

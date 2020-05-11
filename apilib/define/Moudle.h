@@ -17,11 +17,15 @@ typedef struct GGUID {
 
 	bool operator==(GGUID t)
 	{
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 		return (
 			((unsigned long *)&this->Data1)[0] == ((unsigned long *)&t)[0] &&
 			((unsigned long *)&this->Data1)[1] == ((unsigned long *)&t)[1] &&
 			((unsigned long *)&this->Data1)[2] == ((unsigned long *)&t)[2] &&
 			((unsigned long *)&this->Data1)[3] == ((unsigned long *)&t)[3]);
+#else
+		return memcmp(&this->Data1, &t, sizeof(GGUID)) == 0;
+#endif
 	}
 
 	bool operator!= (GGUID t)
@@ -38,7 +42,6 @@ struct IUnknownEx
 	virtual void *QueryInterface(GGUID uuid) = 0;
 };
 
-//内部接口查询
 #define QUERY_INTERFACE(interface_, uuid_)		\
 if (uuid_==IID_##interface_)					\
 {												\

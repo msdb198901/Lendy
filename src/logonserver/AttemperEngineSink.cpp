@@ -70,7 +70,7 @@ namespace Logon
 			}
 
 			//提示消息
-			LOG_INFO("server.logon", "正在注册登录服务器...");
+			LOG_INFO("server.logon", "Registering Loginserver...");
 
 			//变量定义
 			CMD_CS_C_RegisterLogon RegisterLogon;
@@ -426,7 +426,7 @@ namespace Logon
 
 
 			//插入游客用户
-			std::string strVisitor = StringFormat("游客%d", game_id);
+			std::string strVisitor = StringFormat("Visitor%d", game_id);
 			stmt = LogonDatabasePool.GetPreparedStatement(LOGON_INS_VISITOR_ACCOUNT);
 			
 			std::string strUTF8Visitor;
@@ -435,7 +435,7 @@ namespace Logon
 			stmt->SetString(1, strUTF8Visitor);
 			stmt->SetString(2, "");
 			stmt->SetString(3, "1");
-			stmt->SetInt8(4, pBindParameter->cbClientKind);
+			stmt->SetInt8(4, 100/*pBindParameter->cbClientKind*/);
 			stmt->SetString(5, strClientIP);
 			stmt->SetString(6, pLogonVisitor->szMachineID);
 			LogonDatabasePool.DirectExecute(stmt);
@@ -446,7 +446,7 @@ namespace Logon
 			result = LogonDatabasePool.Query(stmt);
 			if (!result) 
 			{
-				LOG_ERROR("server.logon", "插入游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.logon", "Insert ID IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
 				return false;
 			}
 		}
@@ -484,17 +484,17 @@ namespace Logon
 
 		Util::StringUtility::Utf8ToConsole(account, strAnsiAccount);
 		std::wstring wstrAccount = Util::StringUtility::StringToWString(strAnsiAccount);
-		swprintf(LogonSuccess.szAccounts, sizeof(LogonSuccess.szAccounts), L"%s", wstrAccount.c_str());
+		swprintf(LogonSuccess.szAccounts, sizeof(LogonSuccess.szAccounts), L"%ls", wstrAccount.c_str());
 
 		std::string strAnsiUsername;
 		Util::StringUtility::Utf8ToConsole(account, strAnsiUsername);
 		std::wstring wstrUsername = Util::StringUtility::StringToWString(strAnsiUsername);
-		swprintf(LogonSuccess.szNickName, sizeof(LogonSuccess.szNickName), L"%s", wstrUsername.c_str());
+		swprintf(LogonSuccess.szNickName, sizeof(LogonSuccess.szNickName), L"%ls", wstrUsername.c_str());
 
 		std::string strAnsiSHAPass;
 		Util::StringUtility::Utf8ToConsole(sha_pass_hash, strAnsiSHAPass);
 		std::wstring wstrSHAPass = Util::StringUtility::StringToWString(sha_pass_hash);
-		swprintf(LogonSuccess.szDynamicPass, sizeof(LogonSuccess.szDynamicPass), L"%s", wstrSHAPass.c_str());
+		swprintf(LogonSuccess.szDynamicPass, sizeof(LogonSuccess.szDynamicPass), L"%ls", wstrSHAPass.c_str());
 
 		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_SUCCESS, &LogonSuccess, sizeof(LogonSuccess));
 

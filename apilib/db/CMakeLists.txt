@@ -21,3 +21,16 @@ target_link_libraries(DataBase
   PUBLIC
     Log
     mysql)
+
+if( UNIX )
+	add_custom_command(TARGET DataBase
+      POST_BUILD
+	  COMMAND 
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/DataBase.so ${CMAKE_SOURCE_DIR}/bin/)
+endif()
+
+if( UNIX )
+  install(TARGETS DataBase DESTINATION bin)
+elseif( WIN32 )
+  install(TARGETS DataBase DESTINATION bin)
+endif()

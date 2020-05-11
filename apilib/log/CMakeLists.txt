@@ -20,3 +20,16 @@ target_include_directories(Log
 target_link_libraries(Log
   PUBLIC
     Util)
+
+if( UNIX )
+	add_custom_command(TARGET Log
+      POST_BUILD
+	  COMMAND 
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/Log.so ${CMAKE_SOURCE_DIR}/bin/)
+endif()
+
+if( UNIX )
+  install(TARGETS Log DESTINATION bin)
+elseif( WIN32 )
+  install(TARGETS Log DESTINATION bin)
+endif()

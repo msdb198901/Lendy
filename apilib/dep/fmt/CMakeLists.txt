@@ -46,3 +46,16 @@ target_compile_definitions(fmt
 target_link_libraries(fmt
   PRIVATE
     lendy-dependency-interface)
+
+if( UNIX )
+	add_custom_command(TARGET fmt
+      POST_BUILD
+	  COMMAND 
+	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/fmt.a ${CMAKE_SOURCE_DIR}/bin/)
+endif()
+
+if( UNIX )
+  install(TARGETS fmt DESTINATION bin)
+elseif( WIN32 )
+  install(TARGETS fmt DESTINATION bin)
+endif()

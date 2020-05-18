@@ -70,6 +70,10 @@ namespace SubGame
 
 		//游戏事件
 	protected:
+		//加注事件
+		bool OnUserPlayBet(uint16 wChairID, uint8 cbBetArea, SCORE lBetScore);
+		//请求用户列表
+		bool OnUserOnlineList(uint16 wChairID);
 		//用户列表
 		bool OnGetUserListGameID(uint16 wSeatUser[MAX_SEAT_COUNT]);
 
@@ -78,14 +82,18 @@ namespace SubGame
 		//游戏发牌
 		void DispatchTableCard();
 		//结束计算
-		uint32 GameOver();
+		SCORE GameOver();
 		//计算得分
-		uint64 CalculateScore(uint64& lBankerWinScore, tagServerGameRecord& GameRecord);
+		SCORE CalculateScore(SCORE& lBankerWinScore, tagServerGameRecord& GameRecord);
 
 		//辅助函数
 	private:
 		//读取配置
 		void ReadConfigInformation();
+		//最大下注
+		SCORE GetMaxPlayerScore(uint8 cbBetArea, uint16 wChairID);
+		//发送记录
+		void SendGameRecord(IRoomUserItem *pIServerUserItem);
 
 		//组件变量
 	protected:
@@ -95,24 +103,24 @@ namespace SubGame
 	
 		//用户信息
 	protected:
-		uint64							m_lUserStartScore[GAME_PLAYER];						//起始分数
+		SCORE							m_lUserStartScore[GAME_PLAYER];						//起始分数
 
 		bool							m_bUserListWin[GAME_PLAYER][USER_LIST_COUNT];		//获胜次数
 		uint16							m_wUserPlayCount[GAME_PLAYER];						//游戏局数
-		uint64							m_lUserListScore[GAME_PLAYER][USER_LIST_COUNT];		//下注数目
+		SCORE							m_lUserListScore[GAME_PLAYER][USER_LIST_COUNT];		//下注数目
 
 		//下注数
 	protected:
-		uint64							m_lAllBet[AREA_MAX];					//总下注量
-		uint64							m_lPlayBet[GAME_PLAYER][AREA_MAX];		//玩家下注
+		SCORE							m_lAllBet[AREA_MAX];					//总下注量
+		SCORE							m_lPlayBet[GAME_PLAYER][AREA_MAX];		//玩家下注
 		uint32							m_nChip[MAX_CHIP_COUNT];				//筹码配置
 
 		//分数
 	protected:
-		uint64							m_lBankerScore;							//庄家积分
-		uint64							m_lPlayScore[GAME_PLAYER][AREA_MAX];	//玩家输赢
-		uint64							m_lUserWinScore[GAME_PLAYER];			//玩家成绩
-		uint64							m_lUserRevenue[GAME_PLAYER];			//玩家税收
+		SCORE							m_lBankerScore;							//庄家积分
+		SCORE							m_lPlayScore[GAME_PLAYER][AREA_MAX];	//玩家输赢
+		SCORE							m_lUserWinScore[GAME_PLAYER];			//玩家成绩
+		SCORE							m_lUserRevenue[GAME_PLAYER];			//玩家税收
 
 		//时间设置
 	protected:
@@ -137,26 +145,26 @@ namespace SubGame
 		uint16							m_wOfflineBanker;						//离线庄家
 		uint16							m_wBankerTime;							//做庄次数
 
-		uint64							m_lBankerWinScore;						//累计成绩
-		uint64							m_lBankerCurGameScore;					//当前成绩
+		SCORE							m_lBankerWinScore;						//累计成绩
+		SCORE							m_lBankerCurGameScore;					//当前成绩
 
 		bool							m_bEnableSysBanker;						//系统做庄
 
 		//庄家设置
 protected:
-		uint64							m_nBankerTimeLimit;						//最大庄家数
-		uint64							m_nBankerTimeAdd;						//庄家增加数
-		uint64							m_lExtraBankerScore;					//庄家钱
-		uint64							m_nExtraBankerTime;						//庄家钱大时,坐庄增加数
-
-		uint64							m_lPlayerBankerMAX;						//玩家最大庄家数
+		SCORE							m_nBankerTimeLimit;						//最大庄家数
+		SCORE							m_nBankerTimeAdd;						//庄家增加数
+		SCORE							m_lExtraBankerScore;					//庄家钱
+		SCORE							m_nExtraBankerTime;						//庄家钱大时,坐庄增加数
+		
+		SCORE							m_lPlayerBankerMAX;						//玩家最大庄家数
 		bool							m_bExchangeBanker;						//交换庄家
 
 		//控制变量
 protected:
-		uint64							m_lAreaLimitScore;						//区域限制
-		uint64							m_lUserLimitScore;						//区域限制
-		uint64							m_lApplyBankerCondition;				//申请条件
+		SCORE							m_lAreaLimitScore;						//区域限制
+		SCORE							m_lUserLimitScore;						//区域限制
+		SCORE							m_lApplyBankerCondition;				//申请条件
 
 		//记录变量
 	protected:

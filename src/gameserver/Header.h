@@ -91,6 +91,14 @@ namespace Game
 		LEC_MAX_CODE
 	};
 
+	//enum ScoreType
+	//{
+	//	SCORE_TYPE_NULL		=		0x00,								//无效积分
+	//	SCORE_TYPE_WIN		=		0x01,								//胜局积分
+	//	SCORE_TYPE_LOSE		=		0x02,								//输局积分
+	//	SCORE_TYPE_DRAW		=		0x03,								//和局积分
+	//};
+
 	typedef std::pair<LogonErrorCode, std::string> K_LE;
 #ifdef LENDY_COMPILER_14
 	typedef std::unordered_map<LogonErrorCode, std::string> LogonErrorContainer;
@@ -122,7 +130,8 @@ namespace Game
 
 	struct tagGameAddressOption
 	{
-		char							szIP[32];
+		char							szServerBindIP[32];
+		char							szClientLinkIP[32];
 		uint16							wPort;
 		uint16							wKindID;
 		uint16							wThreadCount;

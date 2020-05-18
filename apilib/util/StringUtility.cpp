@@ -7,7 +7,7 @@
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS 
 #include <Windows.h>
 #endif
-
+#include <cstdio>
 #include <utf8.h>
 
 namespace Util 
@@ -419,7 +419,14 @@ std::wstring StringUtility::StringToWString(const std::string & str)
 	wstr.resize(str.size());
 	OemToCharBuffW(&str[0], &wstr[0], uint32(str.size()));
 #else
-	Utf8ToWStr(str, wstr);
+	//Utf8ToWStr(str, wstr);
+	int len = strlen(str.c_str()) + 1;
+	size_t outlen = len*sizeof(unsigned short);
+	unsigned short* dstr = new unsigned short[len];
+	memset(dstr, 0, len);
+	UTF8ToUTF16LE((char *)str.c_str(), len - 1, (char *)dstr, outlen);
+	wstr = (wchar_t*)dstr;
+	PDELETE(dstr);
 #endif
 	return wstr;
 }
@@ -462,7 +469,6 @@ bool StringUtility::Utf8ToConsole(const std::string& utf8str, std::string& conSt
 	//CharToOemBuffW(&wstr[0], &conStr[0], uint32(wstr.size()));
 	conStr = WStringToString(wstr);
 #else
-	// not implemented yet
 	conStr = utf8str;
 #endif
 	return true;
@@ -473,6 +479,27 @@ tm * StringUtility::localtime_r(time_t const * time, tm * result)
 {
 	localtime_s(result, time);
 	return result;
+}
+#endif
+
+#if LENDY_PLATFORM == LENDY_PLATFORM_UNIX 
+int StringUtility::Convert(const char * from_charset, const char * to_charset, char * inbuf, size_t inlen, char * outbuf, size_t outlen)
+{
+	iconv_t cd;
+	int rc;
+	char **pin = &inbuf;
+	char **pout = &outbuf;
+
+	cd = iconv_open(to_charset, from_charset);
+	if (cd == 0) return -1;
+	memset(outbuf, 0, outlen);
+	if (iconv(cd, pin, &inlen, pout, &outlen) == -1) return -1;
+	iconv_close(cd);
+	return 0;
+}
+int StringUtility::UTF8ToUTF16LE(char * inbuf, int inlen, char * outbuf, int outlen)
+{
+	return Convert("UTF-8", "UTF-16LE", inbuf, inlen, outbuf, outlen);
 }
 #endif
 

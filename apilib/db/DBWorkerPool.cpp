@@ -25,7 +25,6 @@ namespace DB
 
 	template<typename T>
 	DBWorkerPool<T>::DBWorkerPool():
-		m_updateFlags(sConfigMgr->GetInt32("DB", "UpdateFlags", 0)),
 		m_queue(new ProducerConsumerQueue<SQLOperation*>())
 	{
 		if (!mysql_thread_safe())
@@ -145,6 +144,7 @@ namespace DB
 	template<typename T>
 	bool DBWorkerPool<T>::Start(DBWorkerPool<T> &pool)
 	{
+		m_updateFlags = sConfigMgr->GetInt32("DB", "UpdateFlags", 0);
 		bool const updatesEnabledForThis = m_updateFlags == 1;/*DBUpdater<T>::IsEnabled(_updateFlags)*/;
 		std::string name = sConfigMgr->Get("DB", "Name", "");
 		m_open.push([this, name, updatesEnabledForThis, &pool]() -> bool

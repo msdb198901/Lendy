@@ -36,8 +36,8 @@ struct CMD_CS_C_RegisterRoom
 	uint16							wKindID;							//名称索引
 	uint16							wServerID;							//房间索引
 	uint16							wServerPort;						//房间端口
-	uint64							lCellScore;							//单元积分
-	uint64							lEnterScore;						//进入积分
+	SCORE							lCellScore;							//单元积分
+	SCORE							lEnterScore;						//进入积分
 	uint32							dwOnLineCount;						//在线人数
 	uint32							dwFullCount;						//满员人数
 	uint32							wTableCount;						//桌子数目

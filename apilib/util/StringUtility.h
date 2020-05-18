@@ -4,6 +4,9 @@
 #include "Define.h"
 #include <string>
 #include <vector>
+#if LENDY_PLATFORM == LENDY_PLATFORM_UNIX
+#include <iconv.h> 
+#endif
 
 namespace Util 
 {
@@ -42,6 +45,12 @@ namespace Util
 
 		static bool Bin2Hex(const char* bin_str, std::string* hex_str);
 
+		//LINUX
+#if LENDY_PLATFORM == LENDY_PLATFORM_UNIX 
+		static int Convert(const char *from_charset, const char *to_charset, char *inbuf, size_t inlen, char *outbuf, size_t outlen);
+		static int UTF8ToUTF16LE(char *inbuf, int inlen, char *outbuf, int outlen);
+#endif
+
 		//////////////////////////////////////////////////////////
 		//Ansi <-> Unicode <-> Utf8
 		static void UTF8Printf(FILE* out, const char *str, ...);
@@ -69,6 +78,8 @@ namespace Util
 		static bool Utf8ToConsole(const std::string& utf8str, std::string& conStr);
 
 		static struct tm* localtime_r(time_t const* time, struct tm *result);
+
+
 	};
 	
 

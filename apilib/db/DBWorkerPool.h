@@ -49,7 +49,7 @@ namespace DB
 		bool Load();
 		bool Process(std::queue<Predicate>& queue);
 
-		uint32 const m_updateFlags;
+		uint32 m_updateFlags;
 		EXPORT_BEGIN
 		std::queue<Predicate> m_open, m_populate, m_update, m_prepare;
 		std::stack<Closer> m_close;

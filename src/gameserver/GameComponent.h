@@ -30,13 +30,13 @@ namespace Game
 		uint8							cbOffLineTrustee;					//断线代打
 
 		//税收配置
-		uint64							lCellScore;							//单位积分
+		SCORE							lCellScore;							//单位积分
 		uint16							wRevenueRatio;						//税收比例
-		uint64							lServiceScore;						//服务费用
+		SCORE							lServiceScore;						//服务费用
 
 		//房间配置
-		uint64							lMinEnterScore;						//最低积分
-		uint64							lMaxEnterScore;						//最高积分
+		SCORE							lMinEnterScore;						//最低积分
+		SCORE							lMaxEnterScore;						//最高积分
 
 		//房间属性
 		uint16							wMaxPlayer;							//最大数目
@@ -144,7 +144,7 @@ namespace Game
 		//积分信息
 	public:
 		//用户积分
-		virtual uint64 GetUserScore() = 0;
+		virtual SCORE GetUserScore() = 0;
 
 		//积分信息
 	public:
@@ -187,11 +187,23 @@ namespace Game
 	public:
 		//设置参数
 		virtual bool SetUserParameter(uint32 dwClientAddr, uint16 wBindIndex, const char szMachineID[LEN_MACHINE_ID], bool bClientReady) = 0;
+
+		//写入积分
+		virtual bool WriteUserScore(SCORE & lScore) = 0;
 	};
 
 	//桌子接口
 	struct ITableFrame : public IUnknownEx
 	{
+		//属性接口
+	public:
+		//桌子号码
+		virtual uint16 GetTableID() = 0;
+		//游戏人数
+		virtual uint16 GetChairCount() = 0;
+		//空位置数目
+		virtual uint16 GetNullChairCount() = 0;
+
 		//用户接口
 	public:
 		//寻找用户
@@ -221,6 +233,13 @@ namespace Game
 		virtual bool DismissGame() = 0;
 		//结束游戏
 		virtual bool ConcludeGame(uint8 cbGameStatus) = 0;
+
+		//写分接口
+	public:
+		//写入积分
+		virtual bool WriteUserScore(uint8 wChairID, SCORE & lScore) = 0;
+		//写入积分
+		virtual bool WriteTableScore(SCORE ScoreArray[], uint16 wScoreCount) = 0;
 
 		//功能接口
 	public:
@@ -338,6 +357,8 @@ namespace Game
 	//状态接口
 	struct IRoomUserItemSink : public IUnknownEx
 	{
+		//用户积分
+		virtual bool OnEventUserItemScore(IRoomUserItem * pIServerUserItem, uint8 cbReason) = 0;
 		//用户状态
 		virtual bool OnEventUserItemStatus(IRoomUserItem * pIServerUserItem, uint16 wOldTableID = INVALID_TABLE, uint16 wOldChairID = INVALID_CHAIR) = 0;
 	};

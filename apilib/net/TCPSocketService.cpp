@@ -326,7 +326,59 @@ namespace Net
 
 	bool Net::CTCPSocketServiceThread::OnSocketNotifyWrite()
 	{
-		return false;
+		////缓冲判断
+		//if ((m_bNeedBuffer == true) && (m_dwBufferData > 0L))
+		//{
+		//	//变量定义
+		//	DWORD dwTotalCount = 0;
+		//	DWORD dwPacketSize = 4096;
+
+		//	//设置变量
+		//	m_dwSendTickCount = GetTickCount() / 1000L;
+
+		//	//发送数据
+		//	while (dwTotalCount < m_dwBufferData)
+		//	{
+		//		//发生数据
+		//		WORD wSendSize = (WORD)__min(dwPacketSize, m_dwBufferData - dwTotalCount);
+		//		INT nSendCount = send(m_hSocket, (char *)m_pcbDataBuffer + dwTotalCount, wSendSize, 0);
+
+		//		//错误判断
+		//		if (nSendCount == SOCKET_ERROR)
+		//		{
+		//			//缓冲判断
+		//			if (WSAGetLastError() == WSAEWOULDBLOCK)
+		//			{
+		//				//设置变量
+		//				m_bNeedBuffer = false;
+		//				m_dwBufferData -= dwTotalCount;
+
+		//				//移动内存
+		//				if (m_dwBufferData > 0L)
+		//				{
+		//					m_bNeedBuffer = true;
+		//					MoveMemory(m_pcbDataBuffer, m_pcbDataBuffer + dwTotalCount, m_dwBufferData);
+		//				}
+
+		//				return 1L;
+		//			}
+
+		//			//关闭连接
+		//			PerformCloseSocket(SHUT_REASON_EXCEPTION);
+
+		//			return 1L;
+		//		}
+
+		//		//设置变量
+		//		dwTotalCount += nSendCount;
+		//	}
+
+		//	//设置变量
+		//	m_dwBufferData = 0L;
+		//	m_bNeedBuffer = false;
+		//}
+
+		return 1L;
 	}
 
 	void Net::CTCPSocketServiceThread::PerformCloseSocket(uint8 cbShutReason)
@@ -384,11 +436,13 @@ namespace Net
 			}
 		}
 
-		////缓冲数据
-		//if (wTotalCount > wSendSize)
-		//{
-		//	AmortizeBuffer((LPBYTE)pBuffer + wTotalCount, wSendSize - wTotalCount);
-		//}
+		//缓冲数据
+		if (wTotalCount > wSendSize)
+		{
+			///AmortizeBuffer((LPBYTE)pBuffer + wTotalCount, wSendSize - wTotalCount);
+			int i = 0;
+			++i;
+		}
 
 		return wSendSize;
 	}

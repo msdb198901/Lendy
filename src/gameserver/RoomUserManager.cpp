@@ -1,9 +1,11 @@
 #include "RoomUserManager.h"
+//#include "Header.h"
 
 namespace Game
 {
 	CRoomUserItem::CRoomUserItem()
 	{
+		memset(m_szLogonPass, 0, sizeof(m_szLogonPass));
 	}
 	CRoomUserItem::~CRoomUserItem()
 	{
@@ -83,7 +85,7 @@ namespace Game
 
 		return true;
 	}
-	uint64 CRoomUserItem::GetUserScore()
+	SCORE CRoomUserItem::GetUserScore()
 	{
 		return m_UserInfo.lScore;
 	}
@@ -171,6 +173,34 @@ namespace Game
 		m_dwClientAddr = dwClientAddr;
 		snprintf(m_szMachineID, sizeof(m_szMachineID), "%s", szMachineID);
 
+		return true;
+	}
+
+	bool CRoomUserItem::WriteUserScore(SCORE & lScore)
+	{
+		//效验状态
+		if (m_UserInfo.dwUserID == 0L) return false;
+
+		//修改胜负
+		if (lScore > 0)
+		{
+			++m_UserInfo.dwWinCount;
+		}
+		else if (lScore < 0)
+		{
+			++m_UserInfo.dwLostCount;
+		}
+		else
+		{
+			++m_UserInfo.dwDrawCount;
+		}
+
+		//设置积分
+		m_UserInfo.lScore += lScore;
+
+		//发送状态
+		assert(m_pIRoomUserItemSink != nullptr);
+		if (m_pIRoomUserItemSink != nullptr) m_pIRoomUserItemSink->OnEventUserItemScore(this, 0);
 		return true;
 	}
 

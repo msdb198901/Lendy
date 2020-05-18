@@ -97,6 +97,8 @@ namespace Game
 
 		//用户接口
 	public:
+		//用户积分
+		virtual bool OnEventUserItemScore(IRoomUserItem * pIServerUserItem, uint8 cbReason);
 		//用户状态
 		virtual bool OnEventUserItemStatus(IRoomUserItem * pIServerUserItem, uint16 wOldTableID = INVALID_TABLE, uint16 wOldChairID = INVALID_CHAIR);
 
@@ -127,6 +129,8 @@ namespace Game
 		bool OnTCPNetworkMainLogon(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//框架处理
 		bool OnTCPNetworkMainFrame(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
+		//游戏处理
+		bool OnTCPNetworkMainGame(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 	protected:
 		//游客登录

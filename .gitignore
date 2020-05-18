@@ -11381,3 +11381,7 @@ bin/CorrespondConfig.ini
 bin/GameConfig.ini
 bin/LogonConfig.ini
 bin/RedBlack_1.ini
+Build/.vs/lendy/v15/ipch/AutoPCH/5cdb3275e27b70f5/FORMAT.ipch
+Build/apilib/db/DataBase.dir/Debug/DataBase.tlog/link.13796.delete.1.tlog
+Build/apilib/db/DataBase.dir/Debug/DataBase.tlog/link.7960.delete.1.tlog
+Build/.vs/lendy/v15/ipch/AutoPCH/60e69d92e3d5a1bd/GAMELOGIC.ipch

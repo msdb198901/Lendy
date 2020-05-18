@@ -46,7 +46,7 @@ struct CMD_CM_SystemMessage
 {
 	uint16							wType;								//消息类型
 	uint16							wLength;							//消息长度
-	wchar_t							szString[1024];						//消息内容
+	wchar							szString[1024];						//消息内容
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -77,9 +77,9 @@ struct CMD_GR_LogonMobile
 
 	//登录信息
 	uint32							dwUserID;							//用户 I D
-	wchar_t							szPassword[LEN_MD5];				//登录密码
-	wchar_t                         szServerPasswd[LEN_PASSWORD];       //房间密码
-	wchar_t							szMachineID[LEN_MACHINE_ID];		//机器标识
+	wchar							szPassword[LEN_MD5];				//登录密码
+	wchar							szServerPasswd[LEN_PASSWORD];       //房间密码
+	wchar							szMachineID[LEN_MACHINE_ID];		//机器标识
 };
 
 //登录成功
@@ -93,7 +93,7 @@ struct CMD_GR_LogonSuccess
 struct CMD_GR_LogonFailure
 {
 	uint32							lResultCode;						//错误代码
-	wchar_t							szDescribeString[128];				//错误消息
+	wchar							szDescribeString[128];				//错误消息
 
 	uint32							dwLockKindID;						//锁住房间的游戏KindID
 	uint32							dwLockServerID;						//锁住房间的房间ServerID
@@ -131,8 +131,10 @@ struct CMD_GR_ConfigServer
 
 //用户状态
 #define SUB_GR_USER_ENTER			100									//用户进入
+#define SUB_GR_USER_SCORE			101									//用户分数
 #define SUB_GR_USER_STATUS			102									//用户状态
 #define SUB_GR_USER_REQUEST_FAILURE	103									//请求失败
+#define SUB_GR_USER_HALL_SCORE		105									//给退出游戏的用户刷新金币
 
 //用户状态
 struct tagUserStatus
@@ -140,6 +142,19 @@ struct tagUserStatus
 	uint16							wTableID;							//桌子索引
 	uint16							wChairID;							//椅子位置
 	uint8							cbUserStatus;						//用户状态
+};
+
+//用户积分
+struct tagMobileUserScore
+{
+	//积分信息
+	SCORE							lScore;								//用户分数
+
+	//输赢信息
+	uint32							dwWinCount;							//胜利盘数
+	uint32							dwLostCount;						//失败盘数
+	uint32							dwDrawCount;						//和局盘数
+	uint32							dwFleeCount;						//逃跑盘数
 };
 
 //用户信息
@@ -154,7 +169,7 @@ struct CMD_GR_UserInfoHead
 	uint16							wFaceID;							//头像索引
 	uint32							dwCustomID;							//自定标识
 
-	wchar_t							szNickName[LEN_NICKNAME];			//玩家昵称
+	wchar							szNickName[LEN_NICKNAME];			//玩家昵称
 
 	//用户属性
 	bool							bIsAndroid;							//机器标识
@@ -168,11 +183,11 @@ struct CMD_GR_UserInfoHead
 	uint8							cbUserStatus;						//用户状态
 
 	//积分信息
-	uint64							lScore;								//用户分数
-	uint64							lGrade;								//用户成绩
-	uint64							lInsure;							//用户银行
-	uint64							lIngot;								//用户元宝
-	uint64							dBeans;								//用户游戏豆
+	SCORE							lScore;								//用户分数
+	SCORE							lGrade;								//用户成绩
+	SCORE							lInsure;							//用户银行
+	SCORE							lIngot;								//用户元宝
+	SCORE							dBeans;								//用户游戏豆
 	bool							bAndroid;							//是否为机器人
 	
 																		//游戏信息
@@ -182,7 +197,7 @@ struct CMD_GR_UserInfoHead
 	uint32							dwFleeCount;						//逃跑盘数
 	uint32							dwExperience;						//用户经验
 	uint32							lLoveLiness;						//用户魅力
-	uint64							lIntegralCount;						//积分总数(当前房间)
+	SCORE							lIntegralCount;						//积分总数(当前房间)
 
 	//代理信息
 	uint32							dwAgentID;							//代理 I D
@@ -199,7 +214,7 @@ struct CMD_GR_MobileUserInfoHead
 	uint16							wFaceID;							//头像索引
 	uint32							dwCustomID;							//自定标识
 
-	wchar_t							szNickName[LEN_NICKNAME];			//玩家昵称
+	wchar							szNickName[LEN_NICKNAME];			//玩家昵称
 
 	//用户属性
 	uint8							cbGender;							//用户性别
@@ -211,7 +226,7 @@ struct CMD_GR_MobileUserInfoHead
 	uint8							cbUserStatus;						//用户状态
 
 	//积分信息
-	uint64							lScore;								//用户分数
+	SCORE							lScore;								//用户分数
 
 	//游戏信息
 	uint32							dwWinCount;							//胜利盘数
@@ -226,7 +241,7 @@ struct CMD_GR_UserSitDown
 {
 	uint16							wTableID;							//桌子位置
 	uint16							wChairID;							//椅子位置
-	wchar_t							szPassword[LEN_PASSWORD];			//桌子密码
+	wchar							szPassword[LEN_PASSWORD];			//桌子密码
 };
 
 //起立请求
@@ -248,7 +263,22 @@ struct CMD_GR_UserStatus
 struct CMD_GR_UserRequestFailure
 {
 	uint32							lErrorCode;							//错误代码
-	wchar_t							szDescribeString[256];				//描述信息
+	wchar							szDescribeString[256];				//描述信息
+};
+
+
+//用户分数
+struct CMD_GR_MobileUserScore
+{
+	uint32							dwUserID;							//用户标识
+	tagMobileUserScore				UserScore;							//积分信息
+};
+
+//退出游戏用户分数
+struct CMD_GR_UserHallScore
+{
+	uint32							dwUserID;							//用户标识
+	SCORE							lUserScore;							//积分信息
 };
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -332,8 +362,8 @@ struct tagRBTimeInfo
 	uint8							cbEndTime;							//结束时间
 	uint8							cbPassTime;							//已过时间
 
-	uint64							lMinXianHong;						//最小限红
-	uint64							lMaxXianHong;						//最大限红
+	SCORE							lMinXianHong;						//最小限红
+	SCORE							lMaxXianHong;						//最大限红
 };
 
 //红黑记录信息

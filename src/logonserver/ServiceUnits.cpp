@@ -136,14 +136,20 @@ namespace Logon
 		m_AttemperEngineSink.m_pITCPNetworkEngine = m_TCPNetworkEngine.GetDLLInterface();
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 
-		if (!m_TCPNetworkEngine->SetServiceParameter(
-			sConfigMgr->Get("LocalNet", "BindIP", "127.0.0.1"),
-			sConfigMgr->GetInt32("LocalNet", "Port", 8600),
-			sConfigMgr->GetInt32("LocalNet", "Threads", 4)))
+		std::string strBindIP;
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+		strBindIP = sConfigMgr->Get("LocalNet", "WinBindIP", "127.0.0.1");
+#else
+		strBindIP = sConfigMgr->Get("LocalNet", "LinuxBindIP", "127.0.0.1");
+#endif
+		int iPort = sConfigMgr->GetInt32("LocalNet", "Port", 8600);
+		int iThreadCount = sConfigMgr->GetInt32("LocalNet", "Threads", 4);
+
+		if (!m_TCPNetworkEngine->SetServiceParameter(strBindIP, iPort,iThreadCount))
 		{
 			return false;
 		}
-
+		LOG_INFO("server.logon", "Host:[%s] Port:[%d] ThreadCount:[%d]", strBindIP.c_str(), iPort, iThreadCount);
 		return true;
 	}
 	bool ServiceUnits::StartKernelService(Net::IOContext* ioContext)

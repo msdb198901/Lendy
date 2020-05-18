@@ -79,10 +79,10 @@ namespace Logon
 			//设置变量
 #if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
 			sprintf_s(RegisterLogon.szServerName, "%s", sConfigMgr->Get("LocalNet", "Name", "").c_str());
-			sprintf_s(RegisterLogon.szServerAddr, "%s", sConfigMgr->Get("LocalNet", "BindIP", "").c_str());
+			sprintf_s(RegisterLogon.szServerAddr, "%s", sConfigMgr->Get("LocalNet", "WinBindIP", "").c_str());
 #else
 			snprintf(RegisterLogon.szServerName, sizeof(RegisterLogon.szServerName), "%s", sConfigMgr->Get("LocalNet", "Name", "").c_str());
-			snprintf(RegisterLogon.szServerAddr, sizeof(RegisterLogon.szServerAddr), "%s", sConfigMgr->Get("LocalNet", "BindIP", "").c_str());
+			snprintf(RegisterLogon.szServerAddr, sizeof(RegisterLogon.szServerAddr), "%s", sConfigMgr->Get("LocalNet", "LinuxBindIP", "").c_str());
 #endif
 
 			//发送数据
@@ -479,22 +479,22 @@ namespace Logon
 		
 		LogonSuccess.dwUserID = id;
 		LogonSuccess.dwGameID = id;
+		LogonSuccess.lUserScore = field[6].GetUInt64();
 		
 		std::string strAnsiAccount;
-
 		Util::StringUtility::Utf8ToConsole(account, strAnsiAccount);
 		std::wstring wstrAccount = Util::StringUtility::StringToWString(strAnsiAccount);
-		swprintf(LogonSuccess.szAccounts, sizeof(LogonSuccess.szAccounts), L"%ls", wstrAccount.c_str());
+		swprintf((wchar_t*)LogonSuccess.szAccounts, sizeof(LogonSuccess.szAccounts), L"%ls", wstrAccount.c_str());
 
 		std::string strAnsiUsername;
 		Util::StringUtility::Utf8ToConsole(account, strAnsiUsername);
 		std::wstring wstrUsername = Util::StringUtility::StringToWString(strAnsiUsername);
-		swprintf(LogonSuccess.szNickName, sizeof(LogonSuccess.szNickName), L"%ls", wstrUsername.c_str());
+		swprintf((wchar_t*)LogonSuccess.szNickName, sizeof(LogonSuccess.szNickName), L"%ls", wstrAccount.c_str());
 
 		std::string strAnsiSHAPass;
 		Util::StringUtility::Utf8ToConsole(sha_pass_hash, strAnsiSHAPass);
 		std::wstring wstrSHAPass = Util::StringUtility::StringToWString(sha_pass_hash);
-		swprintf(LogonSuccess.szDynamicPass, sizeof(LogonSuccess.szDynamicPass), L"%ls", wstrSHAPass.c_str());
+		swprintf((wchar_t*)LogonSuccess.szDynamicPass, sizeof(LogonSuccess.szDynamicPass), L"%ls", wstrSHAPass.c_str());
 
 		m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_SUCCESS, &LogonSuccess, sizeof(LogonSuccess));
 
@@ -574,11 +574,11 @@ namespace Logon
 			GameRoomItem.dwAndroidCount = it->second->dwAndroidCount;
 			GameRoomItem.dwFullCount	= it->second->dwFullCount;
 	
-			std::wstring wstrServerAddr = Util::StringUtility::StringToWString(it->second->szServerAddr);
-			swprintf(GameRoomItem.szServerAddr, sizeof(GameRoomItem.szServerAddr), L"%s", wstrServerAddr.c_str());
+			std::wstring wstrServerAddr = Util::StringUtility::StringToWString(it->second->szServerName);
+			swprintf((wchar_t*)GameRoomItem.szServerAddr, sizeof(GameRoomItem.szServerAddr), L"%ls", wstrServerAddr.c_str());
 
-			std::wstring wstrServerName = Util::StringUtility::StringToWString(it->second->szServerName);
-			swprintf(GameRoomItem.szServerName, sizeof(GameRoomItem.szServerName), L"%s", wstrServerName.c_str());
+			std::wstring wstrServerName = Util::StringUtility::StringToWString(it->second->szServerAddr);
+			swprintf((wchar_t*)GameRoomItem.szServerName, sizeof(GameRoomItem.szServerName), L"%ls", wstrServerName.c_str());
 
 			if (wKindID == INVALID_WORD || wKindID == it->second->wKindID)
 			{
@@ -602,7 +602,7 @@ namespace Logon
 
 		LogonFailure.lResultCode = lec;
 		std::wstring wstrLogonError = Util::StringUtility::StringToWString(LogonError[lec]);
-		swprintf(LogonFailure.szDescribe, sizeof(LogonFailure.szDescribe), L"%s", wstrLogonError.c_str());
+		swprintf((wchar_t*)LogonFailure.szDescribe, sizeof(LogonFailure.szDescribe), L"%ls", wstrLogonError.c_str());
 
 		return m_pITCPNetworkEngine->SendData(dwSocketID, MDM_MB_LOGON, SUB_MB_LOGON_FAILURE, &LogonFailure, sizeof(LogonFailure));
 	}

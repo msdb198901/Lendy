@@ -29,8 +29,8 @@ namespace Comm
 		uint16							wServerLevel;						//房间等级
 		uint16							wServerPort;						//房间端口
 		uint16							wTableCount;						//桌子数
-		uint64							lCellScore;							//单元积分
-		uint64							lEnterScore;						//进入积分
+		SCORE							lCellScore;							//单元积分
+		SCORE							lEnterScore;						//进入积分
 
 		uint32							dwServerRule;						//房间规则
 
@@ -73,7 +73,7 @@ namespace Comm
 		uint8							cbUserStatus;						//用户状态
 
 		//积分信息
-		uint64							lScore;								//用户分数
+		SCORE							lScore;								//用户分数
 
 		//游戏信息
 		uint32							dwWinCount;							//胜利盘数
@@ -96,7 +96,7 @@ namespace Comm
 
 		//附加变量
 		uint32							dwUserRight;						//用户权限
-		uint64							lLimitScore;						//限制积分
+		SCORE							lLimitScore;						//限制积分
 
 		//辅助变量
 		bool							bAndroidUser;						//机器用户

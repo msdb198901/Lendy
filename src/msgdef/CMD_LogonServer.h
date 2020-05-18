@@ -40,15 +40,15 @@ struct CMD_MB_LogonSuccess
 	uint32							dwGameID;							//游戏 I D
 	uint32							dwSpreaderID;						//推广ID
 	uint32							dwExperience;						//经验数值
-	wchar_t							szAccounts[LEN_ACCOUNTS];			//用户帐号
-	wchar_t							szNickName[LEN_NICKNAME];			//用户昵称
-	wchar_t							szAliPayAcccount[30];				//支付宝账户
-	wchar_t							szBinkID[20];						//银行卡账户
-	wchar_t							szDynamicPass[LEN_PASSWORD];		//动态密码
+	wchar							szAccounts[LEN_ACCOUNTS];			//用户帐号
+	wchar							szNickName[LEN_NICKNAME];			//用户昵称
+	wchar							szAliPayAcccount[30];				//支付宝账户
+	wchar							szBinkID[20];						//银行卡账户
+	wchar							szDynamicPass[LEN_PASSWORD];		//动态密码
 
 	//财富信息
-	uint64							lUserScore;							//用户游戏币
-	uint64							lUserInsure;						//用户银行	
+	SCORE							lUserScore;							//用户游戏币
+	SCORE							lUserInsure;						//用户银行	
 
 	//扩展信息
 	uint8							cbInsureEnabled;					//使能标识
@@ -60,14 +60,14 @@ struct CMD_MB_LogonSuccess
 	uint32							dwLockServerID;						//锁定房间
 	uint32							dwKindID;							//游戏类型
 
-	wchar_t							szMobilePhone[LEN_MOBILE_PHONE];	//绑定手机
+	wchar							szMobilePhone[LEN_MOBILE_PHONE];	//绑定手机
 };
 
 //登录失败
 struct CMD_MB_LogonFailure
 {
 	uint32							lResultCode;						//错误代码
-	wchar_t							szDescribe[LEN_ERROR_DESCRIBE];		//描述消息
+	wchar							szDescribe[LEN_ERROR_DESCRIBE];		//描述消息
 };
 
 
@@ -94,8 +94,8 @@ struct CMD_MB_GameKindItem
 	uint32							dwDummyCount;						//虚拟人数
 	uint32							dwFullCount;						//满员人数
 	uint32							dwSuportType;						//支持类型
-	wchar_t							szKindName[32];						//游戏名字
-	wchar_t							szProcessName[32];					//进程名字
+	wchar							szKindName[32];						//游戏名字
+	wchar							szProcessName[32];					//进程名字
 };
 
 //游戏房间
@@ -109,16 +109,16 @@ struct CMD_MB_GameRoomItem
 	uint16							wServerType;						//房间类型
 	uint16							wServerLevel;						//房间等级
 	uint16							wServerPort;						//房间端口
-	uint64							lCellScore;							//单元积分
+	SCORE							lCellScore;							//单元积分
 	uint8							cbEnterMember;						//进入会员
-	uint64							lEnterScore;						//进入积分
-	uint64							lTableScore;						//坐下游戏积分
+	SCORE							lEnterScore;						//进入积分
+	SCORE							lTableScore;						//坐下游戏积分
 	uint32							dwServerRule;						//房间规则
 	uint32							dwOnLineCount;						//在线人数
 	uint32							dwAndroidCount;						//机器人数
 	uint32							dwFullCount;						//满员人数
-	wchar_t							szServerAddr[32];					//房间名称
-	wchar_t							szServerName[32];					//房间名称
+	wchar							szServerAddr[32];					//房间名称
+	wchar							szServerName[32];					//房间名称
 	
 	//私人房添加
 	uint32							dwSurportType;						//支持类型

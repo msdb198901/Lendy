@@ -44,6 +44,31 @@ namespace Correspond
 			assert(nullptr);
 			return false;
 		}
+
+		//É¾³ýÓÃ»§
+		for (AUC_IT it_auc = m_ActiveUserItem.begin(); it_auc != m_ActiveUserItem.end(); )
+		{
+			for (G_IT it_g = it_auc->second->vGameRoomID.begin(); it_g != it_auc->second->vGameRoomID.end(); )
+			{
+				if (*it_g == wServerID)
+				{
+					it_g = it_auc->second->vGameRoomID.erase(it_g);
+				}
+				else
+				{
+					++it_g;
+				}
+			}
+			if (it_auc->second->vGameRoomID.empty())
+			{
+				m_ActiveUserItem.erase(it_auc++);
+			}
+			else
+			{
+				++it_auc;
+			}
+		}
+
 		m_FreeGameRoom.emplace_back(it->second);
 		m_ActiveGameRoom.erase(it);
 		return true;

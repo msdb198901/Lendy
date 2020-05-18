@@ -102,22 +102,20 @@ namespace Game
 			if (*it == "-h")
 			{
 				++it;
-				snprintf(m_GameAddressOption.szIP, sizeof(m_GameAddressOption.szIP), "%s", (*it).c_str());
-				LOG_INFO("server.game", "Host:%s", m_GameAddressOption.szIP);
+				snprintf(m_GameAddressOption.szServerBindIP, sizeof(m_GameAddressOption.szServerBindIP), "%s", (*it).c_str());
+				
 			}
 			//Port
 			else if (*it == "-p")
 			{
 				++it;
 				m_GameAddressOption.wPort = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
-				LOG_INFO("server.game", "Port:%i", m_GameAddressOption.wPort);
 			}
 			//KindID
 			else if (*it == "-k")
 			{
 				++it;
 				m_GameAddressOption.wKindID = static_cast<uint16>(strtol(it->c_str(), nullptr, 10));
-				LOG_INFO("server.game", "KindID:%i", m_GameAddressOption.wKindID);
 			}
 			//ThreadCount
 			else if (*it == "-t")
@@ -128,16 +126,25 @@ namespace Game
 			}
 			++it;
 		}
-
-		//-h 192.168.1.217 - p 7000 - s 1 - t 200 - m 1
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+		snprintf(m_GameAddressOption.szClientLinkIP, sizeof(m_GameAddressOption.szClientLinkIP), "%s", sConfigMgr->Get("LocalNet", "WinClientLinkIP", "").c_str());
+#else
+		snprintf(m_GameAddressOption.szClientLinkIP, sizeof(m_GameAddressOption.szClientLinkIP), "%s", sConfigMgr->Get("LocalNet", "LinuxClientLinkIP", "").c_str());
+#endif
+		//-h 172.18.40.45 -p 7000 -s 1 -k 104 -t 1
 		if (argc <= 1)
 		{
-			snprintf(m_GameAddressOption.szIP, sizeof(m_GameAddressOption.szIP), "%s", "127.0.0.1");
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+			snprintf(m_GameAddressOption.szServerBindIP, sizeof(m_GameAddressOption.szServerBindIP), "%s", "127.0.0.1");
+#else
+			snprintf(m_GameAddressOption.szServerBindIP, sizeof(m_GameAddressOption.szServerBindIP), "%s", "172.18.40.45");
+#endif
 			m_GameAddressOption.wPort = 7000;
 			m_GameAddressOption.wKindID = 104;
 			m_GameAddressOption.wThreadCount = 3;
 		}
-		
+		LOG_INFO("server.game", "Host:[%s] Port:[%d] ThreadCount:[%d]", m_GameAddressOption.szServerBindIP, m_GameAddressOption.wPort, m_GameAddressOption.wThreadCount);
+
 		assert(m_GameAddressOption.wKindID != 0);
 		std::string strSection = StringFormat("Game_%d", m_GameAddressOption.wKindID);
 
@@ -242,7 +249,7 @@ namespace Game
 		m_AttemperEngineSink.m_pITCPSocketService = m_TCPSocketService.GetDLLInterface();
 		m_AttemperEngineSink.m_pIGameServiceManager = m_GameServiceManager.GetDLLInterface();
 
-		if (!m_TCPNetworkEngine->SetServiceParameter(m_GameAddressOption.szIP, m_GameAddressOption.wPort, m_GameAddressOption.wThreadCount))
+		if (!m_TCPNetworkEngine->SetServiceParameter(m_GameAddressOption.szServerBindIP, m_GameAddressOption.wPort, m_GameAddressOption.wThreadCount))
 		{
 			return false;
 		}
@@ -277,7 +284,7 @@ namespace Game
 				return false;
 			}
 			std::string strSection = StringFormat("Game_%d", m_GameAddressOption.wKindID);
-			LOG_INFO("server.game", "[ %s ] 游戏启动地址 [ %s:%d ]", sConfigMgr->Get(strSection, "GameName", "").c_str(), m_GameAddressOption.szIP, m_GameAddressOption.wPort);
+			LOG_INFO("server.game", "[ %s ] Game open address [ %s:%d ]", sConfigMgr->Get(strSection, "GameName", "").c_str(), m_GameAddressOption.szServerBindIP, m_GameAddressOption.wPort);
 			return true;
 		};
 		return true;
@@ -300,17 +307,17 @@ namespace Game
 			{
 				case ServiceStatus_Stop:	//停止状态
 				{
-					LOG_INFO("server.logon", "服务停止成功");
+					LOG_INFO("server.logon", "Service stopped successfully");
 					break;
 				}
 				case ServiceStatus_Config:	//配置状态
 				{
-					LOG_INFO("server.logon", "正在初始化组件...");
+					LOG_INFO("server.logon", "Initializing component...");
 					break;
 				}
 				case ServiceStatus_Run:	//服务状态
 				{
-					LOG_INFO("server.logon", "服务启动成功");
+					LOG_INFO("server.logon", "Service started successfully");
 					break;
 				}
 			}

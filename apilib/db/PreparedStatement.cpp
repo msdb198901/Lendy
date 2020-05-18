@@ -270,14 +270,14 @@ namespace DB
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_LONG, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_LONG, &value, sizeof(uint32), true);
 	}
 	void MySQLPreparedStatement::SetUInt64(const uint8 index, const uint64 value)
 	{
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_LONGLONG, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_LONGLONG, &value, sizeof(uint64), true);
 	}
 
 	void MySQLPreparedStatement::SetInt8(const uint8 index, const int8 value)
@@ -285,7 +285,7 @@ namespace DB
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_TINY, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_TINY, &value, sizeof(int8), true);
 	}
 
 	void MySQLPreparedStatement::SetInt16(const uint8 index, const int16 value)
@@ -301,7 +301,7 @@ namespace DB
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_LONG, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_LONG, &value, sizeof(int32), true);
 	}
 
 	void MySQLPreparedStatement::SetInt64(const uint8 index, const int64 value)
@@ -309,7 +309,7 @@ namespace DB
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_LONGLONG, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_LONGLONG, &value, sizeof(int64), true);
 	}
 
 	void MySQLPreparedStatement::SetFloat(const uint8 index, const float value)
@@ -317,7 +317,7 @@ namespace DB
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_FLOAT, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_FLOAT, &value, sizeof(float), true);
 	}
 
 	void MySQLPreparedStatement::SetDouble(const uint8 index, const double value)
@@ -325,7 +325,7 @@ namespace DB
 		AssertValidIndex(index);
 		m_paramsSet[index] = true;
 		MYSQL_BIND* param = &m_bind[index];
-		SetParameterValue(param, MYSQL_TYPE_DOUBLE, &value, sizeof(uint16), true);
+		SetParameterValue(param, MYSQL_TYPE_DOUBLE, &value, sizeof(double), true);
 	}
 
 	void MySQLPreparedStatement::SetBinary(const uint8 index, const std::vector<uint8>& value, bool isString)

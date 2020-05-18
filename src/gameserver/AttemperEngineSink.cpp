@@ -92,7 +92,7 @@ namespace Game
 			}
 
 			//提示消息
-			LOG_INFO("server.game", "正在注册游戏登录服务器...");
+			LOG_INFO("server.game", "Registering game server...");
 
 			//变量定义
 			CMD_CS_C_RegisterRoom RegisterRoom;
@@ -110,7 +110,7 @@ namespace Game
 			RegisterRoom.dwServerRule		= 0;//vCustomRule
 
 			snprintf(RegisterRoom.szServerName, sizeof(RegisterRoom.szServerName), "%s", m_pGameServiceOption->strGameName);
-			snprintf(RegisterRoom.szServerAddr, sizeof(RegisterRoom.szServerAddr), "%s", m_pGameAddressOption->szIP);
+			snprintf(RegisterRoom.szServerAddr, sizeof(RegisterRoom.szServerAddr), "%s", m_pGameAddressOption->szClientLinkIP);
 
 			//发送数据
 			m_pITCPSocketService->SendData(MDM_CS_REGISTER, SUB_CS_C_REGISTER_ROOM, &RegisterRoom, sizeof(RegisterRoom));
@@ -206,7 +206,7 @@ namespace Game
 					{
 						//断线通知
 						assert(wTableID < m_pGameServiceOption->wTableCount);
-						//m_TableFrameArray[wTableID]->OnEventUserOffLine(pIServerUserItem);
+						m_TableFrameArray[wTableID]->OnEventUserOffLine(pIServerUserItem);
 					}
 					else //先不处理看有什么问题
 					{
@@ -244,6 +244,10 @@ namespace Game
 			case MDM_GF_FRAME:
 			{
 				return OnTCPNetworkMainFrame(Command.wSubCmdID, pData, wDataSize, dwSocketID);
+			}
+			case MDM_GF_GAME:		//游戏命令
+			{
+				return OnTCPNetworkMainGame(Command.wSubCmdID, pData, wDataSize, dwSocketID);
 			}
 		}
 		return false;
@@ -339,7 +343,7 @@ namespace Game
 			SystemMessage.wLength = strlen(lpszMessage) + 1;
 
 			std::wstring wstrMessage = Util::StringUtility::StringToWString(lpszMessage);
-			swprintf(SystemMessage.szString, sizeof(SystemMessage.szString), L"%s", wstrMessage.c_str());
+			swprintf((wchar_t*)SystemMessage.szString, sizeof(SystemMessage.szString), L"%ls", wstrMessage.c_str());
 
 			//变量定义
 			uint32 dwUserIndex = pIServerUserItem->GetBindIndex();
@@ -382,8 +386,11 @@ namespace Game
 
 		//常规用户
 		uint16 wBindIndex = pIServerUserItem->GetBindIndex();
-		tagBindParameter * pBindParameter = GetBindParameter(wBindIndex);
-		m_pITCPNetworkEngine->SendData(pBindParameter->dwSocketID, wMainCmdID, wSubCmdID, pData, wDataSize);
+		if (wBindIndex != INVALID_WORD)
+		{
+			tagBindParameter * pBindParameter = GetBindParameter(wBindIndex);
+			m_pITCPNetworkEngine->SendData(pBindParameter->dwSocketID, wMainCmdID, wSubCmdID, pData, wDataSize);
+		}
 		return true;
 	}
 
@@ -411,6 +418,45 @@ namespace Game
 	void CAttemperEngineSink::UnLockScoreLockUser(uint32 dwUserID, uint32 dwInoutIndex, uint32 dwLeaveReason)
 	{
 		PerformUnlockScore(dwUserID, dwInoutIndex, dwLeaveReason);
+	}
+
+	bool CAttemperEngineSink::OnEventUserItemScore(IRoomUserItem * pIServerUserItem, uint8 cbReason)
+	{
+		//效验参数
+		assert(pIServerUserItem != nullptr);
+		if (pIServerUserItem == nullptr) return false;
+
+		tagUserInfo * pUserInfo = pIServerUserItem->GetUserInfo();
+
+		//变量定义
+		CMD_GR_MobileUserScore MobileUserScore;
+		memset(&MobileUserScore, 0, sizeof(MobileUserScore));
+
+		//构造数据
+		MobileUserScore.dwUserID = pUserInfo->dwUserID;
+		MobileUserScore.UserScore.dwWinCount = pUserInfo->dwWinCount;
+		MobileUserScore.UserScore.dwLostCount = pUserInfo->dwLostCount;
+		MobileUserScore.UserScore.dwDrawCount = pUserInfo->dwDrawCount;
+		MobileUserScore.UserScore.dwFleeCount = pUserInfo->dwFleeCount;
+
+		//构造积分
+		MobileUserScore.UserScore.lScore = pUserInfo->lScore;
+
+		//发送数据
+		SendData(pIServerUserItem, MDM_GR_USER, SUB_GR_USER_SCORE, &MobileUserScore, sizeof(MobileUserScore));
+		
+		//大厅刷新
+		CMD_GR_UserHallScore UserHallScore;
+		UserHallScore.dwUserID = pUserInfo->dwUserID;
+		UserHallScore.lUserScore = MobileUserScore.UserScore.lScore;
+		SendData(pIServerUserItem, MDM_GR_USER, SUB_GR_USER_HALL_SCORE, &UserHallScore, sizeof(UserHallScore));
+
+		//即时写分
+		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_UPD_GAME_WRITE_SCORE);
+		stmt->SetUInt64(0, pUserInfo->lScore);
+		stmt->SetInt32(1, pUserInfo->dwUserID);
+		LogonDatabasePool.DirectExecute(stmt);
+		return true;
 	}
 
 	bool CAttemperEngineSink::OnEventUserItemStatus(IRoomUserItem * pIServerUserItem, uint16 wOldTableID, uint16 wOldChairID)
@@ -524,7 +570,7 @@ namespace Game
 		pUserInfoHead->lScore = pUserInfo->lScore;
 
 		std::wstring wstrNickName = Util::StringUtility::StringToWString(pUserInfo->szNickName);
-		swprintf(pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%s", wstrNickName.c_str());
+		swprintf((wchar_t*)pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%ls", wstrNickName.c_str());
 
 		if (dwSocketID == INVALID_DWORD)
 		{
@@ -572,7 +618,7 @@ namespace Game
 		pUserInfoHead->lScore = pUserInfo->lScore;
 
 		std::wstring wstrNickName = Util::StringUtility::StringToWString(pUserInfo->szNickName);
-		swprintf(pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%s", wstrNickName.c_str());
+		swprintf((wchar_t*)pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%ls", wstrNickName.c_str());
 	
 		//发送数据
 		uint16 wHeadSize = sizeof(CMD_GR_MobileUserInfoHead);
@@ -746,6 +792,25 @@ namespace Game
 		}
 		return bResult;
 	}
+	bool CAttemperEngineSink::OnTCPNetworkMainGame(uint16 wSubCmdID, void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		//获取信息
+		uint16 wBindIndex = LOWORD(dwSocketID);
+		IRoomUserItem * pIServerUserItem = GetBindUserItem(wBindIndex);
+
+		//用户效验
+		assert(pIServerUserItem != nullptr);
+		if (pIServerUserItem == nullptr) return false;
+
+		//处理过虑
+		uint16 wTableID = pIServerUserItem->GetTableID();
+		uint16 wChairID = pIServerUserItem->GetChairID();
+		if ((wTableID == INVALID_TABLE) || (wChairID == INVALID_CHAIR)) return true;
+
+		//消息处理 
+		CTableFrame * pTableFrame = m_TableFrameArray[wTableID];
+		return pTableFrame->OnEventSocketGame(wSubCmdID, pData, wDataSize, pIServerUserItem);
+	}
 	bool CAttemperEngineSink::OnTCPNetworkSubMBLogonVisitor(void * pData, uint16 wDataSize, uint32 dwSocketID)
 	{
 		//效验参数
@@ -777,8 +842,8 @@ namespace Game
 		pBindParameter->cbClientKind = LinkType::LT_MOBILE;
 
 		//断线重连
-		std::string strLogonPass = Util::StringUtility::WStringToString(pLogonMobile->szPassword);
-		std::string strMachineID = Util::StringUtility::WStringToString(pLogonMobile->szMachineID);
+		std::string strLogonPass = Util::StringUtility::WStringToString((wchar_t*)pLogonMobile->szPassword);
+		std::string strMachineID = Util::StringUtility::WStringToString((wchar_t*)pLogonMobile->szMachineID);
 
 		IRoomUserItem * pIServerUserItem = m_ServerUserManager.SearchUserItem(pLogonMobile->dwUserID);
 		if ((pIServerUserItem != NULL) && (pIServerUserItem->ContrastLogonPass(strLogonPass.c_str()) == true))
@@ -813,7 +878,7 @@ namespace Game
 		std::string sha_pass_hash = field[3].GetString();
 		std::string face_url = field[4].GetString();
 		int limit = field[5].GetInt8();
-		uint64 score = field[6].GetUInt64();
+		SCORE score = field[6].GetUInt64();
 
 		////废弃判断
 		//if ((pBindParameter->pIServerUserItem != nullptr) || (pBindParameter->dwSocketID != dwSocketID))
@@ -867,7 +932,7 @@ namespace Game
 		UserInfo.wChairID = INVALID_CHAIR;
 
 		//积分信息
-		UserInfo.lScore = 100;
+		UserInfo.lScore = score;
 
 		//登录信息
 		UserInfoPlus.dwLogonTime = (uint32)time(nullptr);
@@ -1017,7 +1082,7 @@ namespace Game
 		}
 
 		//坐下处理
-		std::string strPWD = Util::StringUtility::WStringToString(pUserSitDown->szPassword);
+		std::string strPWD = Util::StringUtility::WStringToString((wchar_t*)pUserSitDown->szPassword);
 		CTableFrame * pTableFrame = m_TableFrameArray[wRequestTableID];
 		pTableFrame->PerformSitDownAction(wRequestChairID, pIServerUserItem, strPWD.c_str());
 		return true;
@@ -1255,7 +1320,7 @@ namespace Game
 		LogonFailure.lResultCode = lErrorCode;
 		
 		std::wstring wstrLogonError = Util::StringUtility::StringToWString(pszString);
-		swprintf(LogonFailure.szDescribeString, sizeof(LogonFailure.szDescribeString), L"%s", wstrLogonError.c_str());
+		swprintf((wchar_t*)LogonFailure.szDescribeString, sizeof(LogonFailure.szDescribeString), L"%ls", wstrLogonError.c_str());
 
 		return m_pITCPNetworkEngine->SendData(dwSocketID, MDM_GR_LOGON, SUB_GR_LOGON_FAILURE, &LogonFailure, sizeof(LogonFailure));
 	}
@@ -1270,7 +1335,7 @@ namespace Game
 		UserRequestFailure.lErrorCode = lErrorCode;
 		
 		std::wstring wstrDescribe = Util::StringUtility::StringToWString(pszDescribe);
-		swprintf(UserRequestFailure.szDescribeString, sizeof(UserRequestFailure.szDescribeString), L"%s", wstrDescribe.c_str());
+		swprintf((wchar_t*)UserRequestFailure.szDescribeString, sizeof(UserRequestFailure.szDescribeString), L"%ls", wstrDescribe.c_str());
 
 		//发送数据
 		SendData(pIServerUserItem, MDM_GR_USER, SUB_GR_USER_REQUEST_FAILURE, &UserRequestFailure, sizeof(UserRequestFailure));

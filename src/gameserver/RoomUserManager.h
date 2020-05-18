@@ -77,7 +77,7 @@ namespace Game
 		//积分信息
 	public:
 		//用户积分
-		virtual uint64 GetUserScore();
+		virtual SCORE GetUserScore();
 
 		//积分信息
 	public:
@@ -120,6 +120,9 @@ namespace Game
 	public:
 		//设置参数
 		virtual bool SetUserParameter(uint32 dwClientAddr, uint16 wBindIndex, const char szMachineID[LEN_MACHINE_ID], bool bClientReady);
+
+		//写入积分
+		virtual bool WriteUserScore(SCORE & lScore);
 
 		//辅助函数
 	private:

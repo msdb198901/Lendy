@@ -20,6 +20,15 @@ namespace Game
 		virtual void Release() { delete this; }
 		virtual void *QueryInterface(GGUID uuid);
 
+		//属性接口
+	public:
+		//桌子号码
+		virtual uint16 GetTableID();
+		//游戏人数
+		virtual uint16 GetChairCount();
+		//空位置数目
+		virtual uint16 GetNullChairCount();
+
 		//用户接口
 	public:
 		//寻找用户
@@ -50,6 +59,13 @@ namespace Game
 		virtual bool ConcludeGame(uint8 cbGameStatus) ;
 		//结束桌子
 		virtual bool ConcludeTable();
+
+		//写分接口
+	public:
+		//写入积分
+		virtual bool WriteUserScore(uint8 wChairID, SCORE & lScore);
+		//写入积分
+		virtual bool WriteTableScore(SCORE ScoreArray[], uint16 wScoreCount);
 
 		//功能接口
 	public:
@@ -94,10 +110,17 @@ namespace Game
 		//获取配置
 		virtual tagGameServiceOption* GetGameServiceOption();
 
+		//用户事件
+	public:
+		//断线事件
+		bool OnEventUserOffLine(IRoomUserItem * pIServerUserItem);
+
 		//系统事件
 	public:
 		//时间事件
 		bool OnEventTimer(uint32 dwTimerID);
+		//游戏事件
+		bool OnEventSocketGame(uint16 wSubCmdID, void * pData, uint16 wDataSize, IRoomUserItem * pIServerUserItem);
 		//框架事件
 		bool OnEventSocketFrame(uint16 wSubCmdID, void * pData, uint16 wDataSize, IRoomUserItem * pIServerUserItem);
 

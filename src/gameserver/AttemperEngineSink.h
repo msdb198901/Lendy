@@ -142,6 +142,8 @@ namespace Game
 		bool OnTCPNetworkSubUserSitDown(void * pData, uint16 wDataSize, uint32 dwSocketID);
 		//用户起立
 		bool OnTCPNetworkSubUserStandUp(void * pData, uint16 wDataSize, uint32 dwSocketID);
+		//请求椅子
+		bool OnTCPNetworkSubChairUserInfoReq(void * pData, uint16 wDataSize, uint32 dwSocketID);
 
 		//执行功能
 	protected:
@@ -165,7 +167,7 @@ namespace Game
 		//辅助函数
 	protected:
 		//登录失败
-		bool SendLogonFailure(const char* pszString, uint32 lErrorCode, uint32 dwSocketID);
+		bool SendLogonFailure(uint32 lErrorCode, uint32 dwSocketID);
 		//用户失败
 		bool SendUserFailure(IRoomUserItem * pIServerUserItem, const char* pszDescribe, uint32 lErrorCode = 0);
 

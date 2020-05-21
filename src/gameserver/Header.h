@@ -88,6 +88,7 @@ namespace Game
 		LEC_USER_ENTER_TABLE = 103,
 
 		LEC_PW_EMPTY = 200,
+		LEC_PW_WRONG = 201,
 		LEC_MAX_CODE
 	};
 
@@ -120,6 +121,7 @@ namespace Game
 		K_LE(LEC_USER_ENTER_TABLE, "欢迎您进入“%s”游戏，祝您游戏愉快！"),
 
 		K_LE(LEC_PW_EMPTY, "很抱歉，您的登录密码错误，不允许继续进入！"),
+		K_LE(LEC_PW_WRONG, "很抱歉，您的登录密码错误，不允许继续进入！"),
 	};
 
 	//控制结果

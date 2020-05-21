@@ -742,6 +742,10 @@ namespace Game
 			{
 				return OnTCPNetworkSubUserStandUp(pData, wDataSize, dwSocketID);
 			}
+			case SUB_GR_USER_CHAIR_INFO_REQ://请求椅子
+			{
+				return OnTCPNetworkSubChairUserInfoReq(pData, wDataSize, dwSocketID);
+			}
 		}
 		return false;
 	}
@@ -834,7 +838,7 @@ namespace Game
 		if (pBindParameter->dwClientAddr != 0 && pLogonMobile->szPassword[0] == L'0')
 		{
 			//发送失败
-			SendLogonFailure(LogonError[LEC_PW_EMPTY].c_str(), LEC_PW_EMPTY, dwSocketID);
+			SendLogonFailure(LEC_PW_EMPTY, dwSocketID);
 			return true;
 		}
 
@@ -860,12 +864,12 @@ namespace Game
 		
 		//查询用户信息
 		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_VISITOR_ACCOUNT);
-		stmt->SetString(0, "");
+		stmt->SetString(0, strMachineID);
 		PreparedQueryResult result = LogonDatabasePool.Query(stmt);
 		
 		if (!result)
 		{
-			//SendLogonFailure();
+			SendLogonFailure(LEC_PW_WRONG, dwSocketID);
 			m_pITCPNetworkEngine->ShutDownSocket(dwSocketID);
 			return true;
 		}
@@ -890,7 +894,7 @@ namespace Game
 		//最低分数
 		if ((m_pGameServiceOption->lMinEnterScore != 0) && (score < m_pGameServiceOption->lMinEnterScore))
 		{
-			SendLogonFailure(LogonError[LEC_ROOM_ENTER_SCORE_LESS].c_str(), LEC_ROOM_ENTER_SCORE_LESS, pBindParameter->dwSocketID);
+			SendLogonFailure(LEC_ROOM_ENTER_SCORE_LESS, pBindParameter->dwSocketID);
 			PerformUnlockScore(pLogonMobile->dwUserID, 0/* pDBOLogonSuccess->dwInoutIndex*/, LER_SERVER_CONDITIONS);
 			return true;
 		}
@@ -900,7 +904,7 @@ namespace Game
 		uint32 dwOnlineCount = m_ServerUserManager.GetUserItemCount();
 		if (dwOnlineCount > (uint32)(wMaxPlayer))
 		{
-			SendLogonFailure(LogonError[LEC_ROOM_FULL].c_str(), LEC_ROOM_FULL, pBindParameter->dwSocketID);
+			SendLogonFailure(LEC_ROOM_FULL, pBindParameter->dwSocketID);
 			PerformUnlockScore(pLogonMobile->dwUserID, 0/* pDBOLogonSuccess->dwInoutIndex*/, LER_SERVER_FULL);
 			return true;
 		}
@@ -1105,7 +1109,7 @@ namespace Game
 		//用户效验
 		if (pIServerUserItem == NULL)
 		{
-			assert(false);
+			//assert(false);
 			return false;
 		}
 	
@@ -1130,6 +1134,70 @@ namespace Game
 		{
 			auto pTableFrame = m_TableFrameArray[wTableID];
 			if (!pTableFrame->PerformStandUpAction(pIServerUserItem)) return true;
+		}
+		return true;
+	}
+
+	bool CAttemperEngineSink::OnTCPNetworkSubChairUserInfoReq(void * pData, uint16 wDataSize, uint32 dwSocketID)
+	{
+		//效验参数
+		assert(wDataSize == sizeof(CMD_GR_ChairUserInfoReq));
+		if (wDataSize != sizeof(CMD_GR_ChairUserInfoReq)) return false;
+
+		//获取用户
+		uint16 wBindIndex = LOWORD(dwSocketID);
+		IRoomUserItem * pIServerUserItem = GetBindUserItem(wBindIndex);
+
+		//用户效验
+		assert(pIServerUserItem != nullptr);
+		if (pIServerUserItem == nullptr) return false;
+
+		//变量定义
+		CMD_GR_ChairUserInfoReq * pUserInfoReq = (CMD_GR_ChairUserInfoReq *)pData;
+		if (pUserInfoReq->wTableID == INVALID_TABLE) return true;
+		if (pUserInfoReq->wTableID >= m_pGameServiceOption->wTableCount)return true;
+
+		//发送消息
+		uint16 wChairCout = m_TableFrameArray[pUserInfoReq->wTableID]->GetChairCount();
+		for (uint16 wIndex = 0; wIndex < wChairCout; wIndex++)
+		{
+			//获取用户
+			if (pUserInfoReq->wChairID != INVALID_CHAIR && wIndex != pUserInfoReq->wChairID)continue;
+			IRoomUserItem * pTagerIServerUserItem = m_TableFrameArray[pUserInfoReq->wTableID]->GetTableUserItem(wIndex);
+			if (pTagerIServerUserItem == nullptr)continue;
+
+			//变量定义
+			uint8 cbBuffer[SOCKET_TCP_PACKET] = { 0 };
+			CMD_GR_MobileUserInfoHead *pUserInfoHead = (CMD_GR_MobileUserInfoHead *)cbBuffer;
+			tagUserInfo *pUserInfo = pTagerIServerUserItem->GetUserInfo();
+
+			//用户属性
+			pUserInfoHead->wFaceID = pUserInfo->wFaceID;
+			pUserInfoHead->dwGameID = pUserInfo->dwGameID;
+			pUserInfoHead->dwUserID = pUserInfo->dwUserID;
+
+			//用户属性
+			pUserInfoHead->cbGender = pUserInfo->cbGender;
+
+			//用户状态
+			pUserInfoHead->wTableID = pUserInfo->wTableID;
+			pUserInfoHead->wChairID = pUserInfo->wChairID;
+			pUserInfoHead->cbUserStatus = pUserInfo->cbUserStatus;
+
+			//用户局数
+			pUserInfoHead->dwWinCount = pUserInfo->dwWinCount;
+			pUserInfoHead->dwLostCount = pUserInfo->dwLostCount;
+			pUserInfoHead->dwDrawCount = pUserInfo->dwDrawCount;
+			pUserInfoHead->dwFleeCount = pUserInfo->dwFleeCount;
+
+			//用户成绩
+			pUserInfoHead->lScore = pUserInfo->lScore;
+			std::wstring wstrNickName = Util::StringUtility::StringToWString(pUserInfo->szNickName);
+			swprintf((wchar_t*)pUserInfoHead->szNickName, sizeof(pUserInfoHead->szNickName), L"%ls", wstrNickName.c_str());
+
+			//发送消息
+			uint16 wHeadSize = sizeof(CMD_GR_MobileUserInfoHead);
+			SendData(pIServerUserItem, MDM_GR_USER, SUB_GR_USER_ENTER, cbBuffer, wHeadSize);
 		}
 		return true;
 	}
@@ -1312,14 +1380,15 @@ namespace Game
 		return nullptr;
 	}
 
-	bool CAttemperEngineSink::SendLogonFailure(const char * pszString, uint32 lErrorCode, uint32 dwSocketID)
+	bool CAttemperEngineSink::SendLogonFailure(uint32 lErrorCode, uint32 dwSocketID)
 	{
 		CMD_GR_LogonFailure LogonFailure;
 		memset(&LogonFailure, 0, sizeof(LogonFailure));
 
 		LogonFailure.lResultCode = lErrorCode;
 		
-		std::wstring wstrLogonError = Util::StringUtility::StringToWString(pszString);
+		//std::string strError = LogonError[lErrorCode];
+		std::wstring wstrLogonError = Util::StringUtility::StringToWString(LogonError[LogonErrorCode(lErrorCode)]);
 		swprintf((wchar_t*)LogonFailure.szDescribeString, sizeof(LogonFailure.szDescribeString), L"%ls", wstrLogonError.c_str());
 
 		return m_pITCPNetworkEngine->SendData(dwSocketID, MDM_GR_LOGON, SUB_GR_LOGON_FAILURE, &LogonFailure, sizeof(LogonFailure));

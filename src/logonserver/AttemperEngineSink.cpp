@@ -358,9 +358,10 @@ namespace Logon
 		std::string strClientIP = StringFormat("%d.%d.%d.%d", pClientAddr[3], pClientAddr[2], pClientAddr[1], pClientAddr[0]);
 
 		////////////////////////////////////
+		std::string strMachine = StringUtility::WStringToString((wchar_t*)pLogonVisitor->szMachineID);
 		PreparedStatement *stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_LIMIT_ADDRESS);
 		stmt->SetString(0, strClientIP);
-		stmt->SetString(1, pLogonVisitor->szMachineID);
+		stmt->SetString(1, strMachine);
 		PreparedQueryResult result = LogonDatabasePool.Query(stmt);
 
 		if (result)
@@ -376,7 +377,7 @@ namespace Logon
 					stmt->SetInt8(1, 0);
 					stmt->SetInt8(2, 0);
 					stmt->SetString(3, strClientIP);
-					stmt->SetString(4, pLogonVisitor->szMachineID);
+					stmt->SetString(4, strMachine);
 					LogonDatabasePool.DirectExecute(stmt);
 					break;
 				}
@@ -393,7 +394,7 @@ namespace Logon
 					break;
 				}
 				
-				LOG_ERROR("server.logon", "禁止登录逻辑出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.logon", "禁止登录逻辑出错 IP: %s  MAC: %s", strClientIP.c_str(), strMachine.c_str());
 				break;
 			}
 		}
@@ -403,7 +404,7 @@ namespace Logon
 
 		//查询用户信息
 		stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_VISITOR_ACCOUNT);
-		stmt->SetString(0, pLogonVisitor->szMachineID);
+		stmt->SetString(0, strMachine);
 		result = LogonDatabasePool.Query(stmt);
 		if (!result)
 		{
@@ -421,7 +422,7 @@ namespace Logon
 			}
 			else 
 			{
-				LOG_ERROR("server.logon", "分配游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.logon", "分配游客ID出错 IP: %s  MAC: %s", strClientIP.c_str(), strMachine.c_str());
 			}
 
 
@@ -437,16 +438,16 @@ namespace Logon
 			stmt->SetString(3, "1");
 			stmt->SetInt8(4, 100/*pBindParameter->cbClientKind*/);
 			stmt->SetString(5, strClientIP);
-			stmt->SetString(6, pLogonVisitor->szMachineID);
+			stmt->SetString(6, strMachine);
 			LogonDatabasePool.DirectExecute(stmt);
 
 			//重新查询游客
 			stmt = LogonDatabasePool.GetPreparedStatement(LOGON_SEL_VISITOR_ACCOUNT);
-			stmt->SetString(0, pLogonVisitor->szMachineID);
+			stmt->SetString(0, strMachine);
 			result = LogonDatabasePool.Query(stmt);
 			if (!result) 
 			{
-				LOG_ERROR("server.logon", "Insert ID IP: %s  MAC: %s", strClientIP.c_str(), pLogonVisitor->szMachineID);
+				LOG_ERROR("server.logon", "Insert ID IP: %s  MAC: %s", strClientIP.c_str(), strMachine.c_str());
 				return false;
 			}
 		}
@@ -470,7 +471,7 @@ namespace Logon
 		//更新登陆信息
 		stmt = LogonDatabasePool.GetPreparedStatement(LOGON_UPD_VISITOR_ACCOUNT);
 		stmt->SetString(0, strClientIP);
-		stmt->SetString(1, pLogonVisitor->szMachineID);
+		stmt->SetString(1, strMachine);
 		LogonDatabasePool.DirectExecute(stmt);
 
 		//////////////////////////////////////////////////////////////////////////////////////////

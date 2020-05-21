@@ -128,6 +128,7 @@ struct CMD_GR_ConfigServer
 
 #define SUB_GR_USER_SITDOWN			3									//坐下请求
 #define SUB_GR_USER_STANDUP			4									//起立请求
+#define SUB_GR_USER_CHAIR_INFO_REQ  11                                  //请求椅子用户信息
 
 //用户状态
 #define SUB_GR_USER_ENTER			100									//用户进入
@@ -279,6 +280,13 @@ struct CMD_GR_UserHallScore
 {
 	uint32							dwUserID;							//用户标识
 	SCORE							lUserScore;							//积分信息
+};
+
+//请求用户信息
+struct CMD_GR_ChairUserInfoReq
+{
+	uint16							wTableID;							//桌子号码
+	uint16							wChairID;							//椅子位置
 };
 
 //////////////////////////////////////////////////////////////////////////////////

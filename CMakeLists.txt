@@ -1,20 +1,25 @@
 cmake_minimum_required(VERSION 3.2)
 project(lendy)
 
+option(WITH_COREDEBUG   "Include additional debug-code in core"                       0)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
 list(APPEND CMAKE_MODULE_PATH
   "${CMAKE_SOURCE_DIR}/cmake/macros")
 
 if (WIN32)
-  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-else()
-	SET(CMAKE_CXX_FLAGS "-std=c++11 -O3 -fPIC")
 	set(CMAKE_BUILD_TYPE "RelWithDebInfo")
-	#if( NOT CMAKE_BUILD_TYPE )
-	#	set(CMAKE_BUILD_TYPE "Debug")
-	#	set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -gdwarf-2")
-	#endif()
+else()
+	if (WITH_COREDEBUG)
+		if( NOT CMAKE_BUILD_TYPE )
+			set(CMAKE_BUILD_TYPE "Debug")
+			set(CMAKE_CXX_FLAGS_DEBUG "-std=c++11 -g3 -gdwarf-2 -fPIC")
+		endif()
+	else()
+		set(CMAKE_CXX_FLAGS "-std=c++11 -O3 -fPIC")
+		set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+	endif()
 endif()
 
 find_package(MySQL)

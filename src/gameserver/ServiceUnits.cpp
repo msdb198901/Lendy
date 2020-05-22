@@ -297,7 +297,7 @@ namespace Game
 			//错误通知
 			if ((m_ServiceStatus != ServiceStatus_Run) && (ServiceStatus == ServiceStatus_Stop))
 			{
-				LOG_INFO("server.logon", "服务启动失败");
+				LOG_INFO("server.game", "服务启动失败");
 			}
 
 			//设置变量
@@ -307,17 +307,17 @@ namespace Game
 			{
 				case ServiceStatus_Stop:	//停止状态
 				{
-					LOG_INFO("server.logon", "Service stopped successfully");
+					LOG_INFO("server.game", "Service stopped successfully");
 					break;
 				}
 				case ServiceStatus_Config:	//配置状态
 				{
-					LOG_INFO("server.logon", "Initializing component...");
+					LOG_INFO("server.game", "Initializing component...");
 					break;
 				}
 				case ServiceStatus_Run:	//服务状态
 				{
-					LOG_INFO("server.logon", "Service started successfully");
+					LOG_INFO("server.game", "Service started successfully");
 					break;
 				}
 			}

@@ -427,7 +427,7 @@ namespace Net
 			if (pObject == nullptr) throw "≤È—Ø ß∞‹";						
 			return pObject;													
 		}																	
-		catch (const std::exception& ){  }									
+		catch (...){  }									
 		PDELETE(pObjectType);												
 		return nullptr;														
 	}	

@@ -388,7 +388,7 @@ namespace DB
 			{
 				throw "update failed";
 			}
-			catch (const std::exception& ec)
+			catch (...)
 			{
 				LOG_ERROR("sql.updates", ec.what());
 			}
@@ -493,7 +493,7 @@ namespace DB
 			{
 				throw "update failed";
 			}
-			catch (const std::exception& ec)
+			catch (...)
 			{
 				LOG_ERROR("sql.updates", ec.what());
 			}

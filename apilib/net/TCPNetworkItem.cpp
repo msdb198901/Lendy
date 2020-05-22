@@ -243,7 +243,7 @@ namespace Net
 				packet.ReadCompleted(wPacketSize);
 			}
 		}
-		catch (const std::exception&)
+		catch (...)
 		{
 			return ;
 		}

@@ -480,7 +480,7 @@ namespace Net
 
 	CTCPNetworkThread<CTCPNetworkItem>* CTCPNetworkEngine::CreateThreads()
 	{
-		return new CTCPNetworkThread<CTCPNetworkItem>[1];
+		return new CTCPNetworkThread<CTCPNetworkItem>[m_threadCount];
 	}
 
 	DECLARE_CREATE_MODULE(TCPNetworkEngine);

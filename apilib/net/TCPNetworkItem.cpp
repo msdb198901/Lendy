@@ -250,6 +250,7 @@ namespace Net
 		}
 		catch (...)
 		{
+			CloseSocket();
 			return ;
 		}
 

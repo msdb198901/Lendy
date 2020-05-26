@@ -122,6 +122,9 @@ namespace Net
 			asio::error_code ec;
 			m_acceptor.close(ec);
 		}
+
+		void SetSocketFactory(std::function<std::pair<tcp::socket*, uint32>()> func) { m_socketFactory = func; }
+
 	private:
 		std::pair<tcp::socket*, uint32> DefeaultSocketFactory() { return std::make_pair(&m_socket, 0); }
 

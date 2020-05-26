@@ -338,10 +338,12 @@ namespace Net
 		m_acceptor = acceptor;
 		m_pThreads = CreateThreads();
 
-		for (int i = 0; i < 1; ++i)
+		for (int i = 0; i < m_threadCount; ++i)
 		{
 			m_pThreads[i].Start();
 		}
+
+		m_acceptor->SetSocketFactory(std::bind(&CTCPNetworkEngine::GetAcceptSocket, this));
 
 		m_acceptor->AsyncAcceptWithCallBack(std::bind(&CTCPNetworkEngine::OnSocketOpen, this, std::placeholders::_1, std::placeholders::_2));
 

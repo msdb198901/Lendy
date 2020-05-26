@@ -390,7 +390,7 @@ namespace DB
 			}
 			catch (...)
 			{
-				LOG_ERROR("sql.updates", ec.what());
+				LOG_ERROR("sql.updates", "update failed");
 			}
 		}
 	}

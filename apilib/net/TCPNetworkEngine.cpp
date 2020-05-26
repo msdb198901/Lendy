@@ -415,6 +415,7 @@ namespace Net
 	std::shared_ptr<CTCPNetworkItem> CTCPNetworkEngine::ActiveNetworkItem(tcp::socket && _socket)
 	{
 		//TODO...暂不判断当前连接数
+		std::lock_guard<std::mutex> _lock(m_mutex);
 
 		//获取对象
 		std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem = nullptr;
@@ -443,7 +444,8 @@ namespace Net
 
 	CTCPNetworkItem* CTCPNetworkEngine::GetNetworkItem(uint32 dwSocket)
 	{
-		auto k = m_NetItemStore.find(dwSocket);
+		std::lock_guard<std::mutex> _lock(m_mutex);
+		std::unordered_map<uint32, CTCPNetworkItem*>::iterator k = m_NetItemStore.find(dwSocket);
 		if (k != m_NetItemStore.end())
 		{
 			return m_NetItemStore[dwSocket];
@@ -453,6 +455,8 @@ namespace Net
 
 	bool CTCPNetworkEngine::FreeNetworkItem(std::shared_ptr<CTCPNetworkItem> pTCPNetworkItem)
 	{
+		std::lock_guard<std::mutex> _lock(m_mutex);
+
 		std::unordered_map<uint32, CTCPNetworkItem*>::iterator it = m_NetItemStore.find(pTCPNetworkItem->GetIndex());
 		if (it == m_NetItemStore.end())
 		{

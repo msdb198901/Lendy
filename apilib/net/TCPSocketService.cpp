@@ -59,7 +59,11 @@ namespace Net
 		m_pStrand(new Net::Strand(m_ioContext)),
 		m_pThread(nullptr),
 		m_pThreadSelect(nullptr),
-		m_wRecvSize(0)
+		m_wRecvSize(0),
+		m_bNeedBuffer(false),
+		m_dwBufferData(0),
+		m_dwBufferSize(0),
+		m_pcbDataBuffer(nullptr)
 	{
 		memset(m_cbRecvBuf, 0, sizeof(m_cbRecvBuf));
 	}
@@ -256,6 +260,48 @@ namespace Net
 		return true;
 	}
 
+	void Net::CTCPSocketServiceThread::AmortizeBuffer(void * pData, uint16 wDataSize)
+	{
+		//申请缓冲
+		if ((m_dwBufferData + wDataSize) > m_dwBufferSize)
+		{
+			//变量定义
+			uint8* pcbDataBuffer = nullptr;
+			uint8* pcbDeleteBuffer = m_pcbDataBuffer;
+
+			//计算大小
+			uint32 dwNeedSize = m_dwBufferData + wDataSize;
+			uint32 dwApplySize = __max(dwNeedSize, m_dwBufferSize * 2L);
+
+			//申请缓冲
+			try
+			{
+				pcbDataBuffer = new uint8[dwApplySize];
+			}
+			catch (...) {}
+
+			//失败判断
+			if (pcbDataBuffer == nullptr)
+			{
+				PerformCloseSocket(SHUT_REASON_EXCEPTION);
+				return;
+			}
+
+			//设置变量
+			m_dwBufferSize = dwApplySize;
+			m_pcbDataBuffer = pcbDataBuffer;
+			memcpy(m_pcbDataBuffer, pcbDeleteBuffer, m_dwBufferData);
+
+			//删除缓冲
+			PDELETE(pcbDeleteBuffer);
+		}
+
+		//设置变量
+		m_bNeedBuffer = true;
+		m_dwBufferData += wDataSize;
+		memcpy(m_pcbDataBuffer + m_dwBufferData - wDataSize, pData, wDataSize);
+	}
+
 	bool Net::CTCPSocketServiceThread::OnSocketNotifyRead()
 	{
 		try
@@ -326,63 +372,63 @@ namespace Net
 
 	bool Net::CTCPSocketServiceThread::OnSocketNotifyWrite()
 	{
-		////缓冲判断
-		//if ((m_bNeedBuffer == true) && (m_dwBufferData > 0L))
-		//{
-		//	//变量定义
-		//	DWORD dwTotalCount = 0;
-		//	DWORD dwPacketSize = 4096;
+		//缓冲判断
+		if (m_bNeedBuffer && (m_dwBufferData > 0L))
+		{
+			//变量定义
+			uint32 dwTotalCount = 0;
+			uint32 dwPacketSize = 4096;
 
-		//	//设置变量
-		//	m_dwSendTickCount = GetTickCount() / 1000L;
+			//发送数据
+			while (dwTotalCount < m_dwBufferData)
+			{
+				//发生数据
+				uint16 wSendSize = (uint16)__min(dwPacketSize, m_dwBufferData - dwTotalCount);
+				int nSendCount = send(m_hSocket, (char *)m_pcbDataBuffer + dwTotalCount, wSendSize, 0);
 
-		//	//发送数据
-		//	while (dwTotalCount < m_dwBufferData)
-		//	{
-		//		//发生数据
-		//		WORD wSendSize = (WORD)__min(dwPacketSize, m_dwBufferData - dwTotalCount);
-		//		INT nSendCount = send(m_hSocket, (char *)m_pcbDataBuffer + dwTotalCount, wSendSize, 0);
+				//错误判断
+				if (nSendCount == SOCKET_ERROR)
+				{
+					//缓冲判断
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+					if (WSAGetLastError() == WSAEWOULDBLOCK)
+					{
+						//设置变量
+						m_bNeedBuffer = false;
+						m_dwBufferData -= dwTotalCount;
 
-		//		//错误判断
-		//		if (nSendCount == SOCKET_ERROR)
-		//		{
-		//			//缓冲判断
-		//			if (WSAGetLastError() == WSAEWOULDBLOCK)
-		//			{
-		//				//设置变量
-		//				m_bNeedBuffer = false;
-		//				m_dwBufferData -= dwTotalCount;
+						//移动内存
+						if (m_dwBufferData > 0L)
+						{
+							m_bNeedBuffer = true;
+							memmove(m_pcbDataBuffer, m_pcbDataBuffer + dwTotalCount, m_dwBufferData);
+						}
 
-		//				//移动内存
-		//				if (m_dwBufferData > 0L)
-		//				{
-		//					m_bNeedBuffer = true;
-		//					MoveMemory(m_pcbDataBuffer, m_pcbDataBuffer + dwTotalCount, m_dwBufferData);
-		//				}
+						return 1L;
+					}
+#endif
+					//关闭连接
+					PerformCloseSocket(SHUT_REASON_EXCEPTION);
 
-		//				return 1L;
-		//			}
+					return 1L;
+				}
 
-		//			//关闭连接
-		//			PerformCloseSocket(SHUT_REASON_EXCEPTION);
+				//设置变量
+				dwTotalCount += nSendCount;
+			}
 
-		//			return 1L;
-		//		}
-
-		//		//设置变量
-		//		dwTotalCount += nSendCount;
-		//	}
-
-		//	//设置变量
-		//	m_dwBufferData = 0L;
-		//	m_bNeedBuffer = false;
-		//}
+			//设置变量
+			m_dwBufferData = 0L;
+			m_bNeedBuffer = false;
+		}
 
 		return 1L;
 	}
 
 	void Net::CTCPSocketServiceThread::PerformCloseSocket(uint8 cbShutReason)
 	{
+		m_dwBufferData = 0;
+
 		//关闭判断
 		if (m_hSocket != INVALID_SOCKET)
 		{
@@ -418,14 +464,16 @@ namespace Net
 			//错误判断
 			if (nSendCount == SOCKET_ERROR)
 			{
-				////缓冲判断
-				//if (WSAGetLastError() == WSAEWOULDBLOCK)
-				//{
-				//	AmortizeBuffer((LPBYTE)pBuffer + wTotalCount, wSendSize - wTotalCount);
-				//	return wSendSize;
-				//}
-				////关闭连接
-				//PerformCloseSocket(SHUT_REASON_EXCEPTION);
+				//缓冲判断
+#if LENDY_PLATFORM == LENDY_PLATFORM_WINDOWS
+				if (WSAGetLastError() == WSAEWOULDBLOCK)
+				{
+					AmortizeBuffer((uint8*)pBuffer + wTotalCount, wSendSize - wTotalCount);
+					return wSendSize;
+				}
+#endif
+				//关闭连接
+				PerformCloseSocket(SHUT_REASON_EXCEPTION);
 
 				return 0L;
 			}
@@ -439,9 +487,7 @@ namespace Net
 		//缓冲数据
 		if (wTotalCount > wSendSize)
 		{
-			///AmortizeBuffer((LPBYTE)pBuffer + wTotalCount, wSendSize - wTotalCount);
-			int i = 0;
-			++i;
+			AmortizeBuffer((uint8*)pBuffer + wTotalCount, wSendSize - wTotalCount);
 		}
 
 		return wSendSize;

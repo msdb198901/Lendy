@@ -50,6 +50,8 @@ namespace Net
 
 		//辅助函数
 	private:
+		//缓冲数据
+		void AmortizeBuffer(void * pData, uint16 wDataSize);
 		//网络读取
 		bool OnSocketNotifyRead();
 		//网络发送
@@ -87,6 +89,11 @@ namespace Net
 		uint16								m_wRecvSize;						//接收长度
 		uint8								m_cbRecvBuf[SOCKET_TCP_BUFFER * 10];//接收缓冲
 
+		bool								m_bNeedBuffer;
+		uint32								m_dwBufferData;						//缓冲数据
+		uint32								m_dwBufferSize;						//缓冲大小
+		uint8*								m_pcbDataBuffer;					//缓冲数据
+
 	protected:
 		Net::IOContext 						m_ioContext;
 		Net::Strand*						m_pStrand;
@@ -106,8 +113,8 @@ namespace Net
 
 		//辅助变量
 	protected:
-		std::mutex							m_mutex;
-		uint8								m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
+		std::mutex						m_mutex;
+		uint8							m_cbBuffer[SOCKET_TCP_BUFFER];		//临时对象
 
 		//组件变量
 	protected:

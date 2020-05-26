@@ -143,7 +143,12 @@ namespace Net
 			assert(nullptr);
 		}
 #else
-		m_closed = true;
+		asio::error_code cancelError;
+		m_socket.cancel(cancelError);
+		if (cancelError)
+		{
+			assert(nullptr);
+		}
 		asio::error_code err;
 		m_socket.close(err);
 		if (err)

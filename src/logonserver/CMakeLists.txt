@@ -27,11 +27,6 @@ if( UNIX )
 	  COMMAND 
 	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/LogonServer ${CMAKE_SOURCE_DIR}/bin/
       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/LogonConfig.ini ${CMAKE_SOURCE_DIR}/bin/)
-elseif( WIN32 )
-	add_custom_command(TARGET LogonServer
-      POST_BUILD
-	  COMMAND
-      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/LogonConfig.ini ${CMAKE_SOURCE_DIR}/bin/)
 endif()
 
 if( UNIX )

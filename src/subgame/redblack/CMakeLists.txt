@@ -27,11 +27,6 @@ if( UNIX )
 	  COMMAND 
 	  COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/RedBlack.so  ${CMAKE_SOURCE_DIR}/bin/
       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/RedBlack_1.ini ${CMAKE_SOURCE_DIR}/bin/)
-elseif( WIN32 )
-	add_custom_command(TARGET RedBlack
-      POST_BUILD
-	  COMMAND
-      COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/RedBlack_1.ini ${CMAKE_SOURCE_DIR}/bin/)
 endif()
 
 if( UNIX )
